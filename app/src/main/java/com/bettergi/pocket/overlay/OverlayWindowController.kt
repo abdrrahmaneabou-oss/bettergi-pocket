@@ -133,7 +133,7 @@ class OverlayWindowController(
     private var routeRunning = false
     private var readoutRunning = false
     private var progress: PathingProgress? = null
-    private var pathingSummary = "未选择路线"
+    private var pathingSummary = "لم يتم اختيار مسار"
     private var hasRouteSelection = false
     private var latestPathingStatus = ""
     private var logExpanded = true
@@ -255,18 +255,18 @@ class OverlayWindowController(
                 InputAccessibilityService.ensureEnabled(themedContext)
             else { captureInterrupted = false; settingsRepository.setScreenShareEnabled(true) }
         }
-        switchEnabled?.contentDescription = "共享屏幕"
+        switchEnabled?.contentDescription = "مشاركة الشاشة"
         switchEnabled?.setOnCheckedChangeListener { _, checked ->
             if (!updatingUi) { captureInterrupted = false; settingsRepository.setScreenShareEnabled(checked)
                 BaiduAnalytics.event("screen_share_toggle", checked.toString()) }
         }
-        switchAutoSkip?.contentDescription = "自动对话"
+        switchAutoSkip?.contentDescription = "الحوار التلقائي"
         switchAutoSkip?.setOnCheckedChangeListener { _, checked ->
             if (!updatingUi) {
                 if (!settingsRepository.get().screenShareEnabled) { hintNeedShare(); updatingUi = true
                     switchAutoSkip?.isChecked = settingsRepository.get().autoSkipEnabled; updatingUi = false }
                 else { settingsRepository.setAutoSkipEnabled(checked); BaiduAnalytics.event("auto_skip_toggle", checked.toString())
-                    if (checked) InputAccessibilityService.ensureEnabled(themedContext, "请开启无障碍权限，才能模拟点击对话选项") }
+                    if (checked) InputAccessibilityService.ensureEnabled(themedContext, "فعّل إمكانية الوصول لمحاكاة الضغط على خيارات الحوار") }
             }
         }
         rowAutoSkip?.setOnClickListener { if (!settingsRepository.get().screenShareEnabled) hintNeedShare() else switchAutoSkip?.toggle() }
@@ -277,12 +277,12 @@ class OverlayWindowController(
         autoLaunchChip?.setOnClickListener { settingsRepository.setAutoLaunchGenshinEnabled(!settingsRepository.get().autoLaunchGenshinEnabled) }
         switchAutoPick?.setOnCheckedChangeListener { _, checked -> if (!updatingUi) {
             settingsRepository.setAutoPickEnabled(checked); BaiduAnalytics.event("auto_pick_toggle", checked.toString())
-            if (checked) InputAccessibilityService.ensureEnabled(themedContext, "请开启无障碍权限，才能模拟点击拾取")
+            if (checked) InputAccessibilityService.ensureEnabled(themedContext, "فعّل إمكانية الوصول لمحاكاة الالتقاط")
         } }
         OverlayUi.leadingIcon(quickSkipChip!!, R.drawable.ic_ui_fast_forward, size = 14)
         OverlayUi.leadingIcon(autoLaunchChip!!, R.drawable.ic_ui_autorenew, size = 14)
-        TooltipCompat.setTooltipText(quickSkipChip!!, "快速跳过：对话中点击屏幕下方继续")
-        TooltipCompat.setTooltipText(autoLaunchChip!!, "无原神时自动启动：启动助手时若未检测到原神则打开一次")
+        TooltipCompat.setTooltipText(quickSkipChip!!, "التخطي السريع: الضغط أسفل الشاشة لمتابعة الحوار")
+        TooltipCompat.setTooltipText(autoLaunchChip!!, "تشغيل جينشن تلقائياً مرة واحدة عند بدء المساعد إذا لم تكن مفتوحة")
         listOf(R.id.overlay_collapse, R.id.overlay_log_toggle, R.id.overlay_exit, R.id.overlay_bilibili, R.id.overlay_pathing_start).forEach {
             root.findViewById<View>(it).let { button -> TooltipCompat.setTooltipText(button, button.contentDescription) }
         }
@@ -300,7 +300,7 @@ class OverlayWindowController(
     }
 
     private fun hintNeedShare() {
-        rootView?.findViewById<TextView>(R.id.overlay_auto_skip_hint)?.apply { text = "需先开启共享屏幕"; visibility = View.VISIBLE }
+        rootView?.findViewById<TextView>(R.id.overlay_auto_skip_hint)?.apply { text = "فعّل مشاركة الشاشة أولاً"; visibility = View.VISIBLE }
         rootView?.findViewById<View>(R.id.overlay_row_enabled)?.apply {
             animate().alpha(.35f).setDuration(160).withEndAction { animate().alpha(1f).setDuration(240).start() }.start()
         }
@@ -467,18 +467,18 @@ class OverlayWindowController(
         when (genshinLauncher.launch()) {
             is GenshinLaunchResult.Started -> setExpanded(false)
             GenshinLaunchResult.NotInstalled -> {
-                launchSubtitle?.apply { text = "未安装原神"; visibility = View.VISIBLE }
+                launchSubtitle?.apply { text = "جينشن غير مثبتة"; visibility = View.VISIBLE }
                 refreshLaunchHint()
             }
             is GenshinLaunchResult.Failed -> {
-                launchSubtitle?.apply { text = "无法启动原神"; visibility = View.VISIBLE }; resizePanel()
+                launchSubtitle?.apply { text = "تعذر تشغيل جينشن"; visibility = View.VISIBLE }; resizePanel()
             }
         }
     }
 
     private fun refreshLaunchHint() {
         val installed = genshinLauncher.resolveInstalledPackage() != null
-        launchSubtitle?.apply { text = if (installed) "" else "未安装原神"; visibility = if (installed) View.GONE else View.VISIBLE }
+        launchSubtitle?.apply { text = if (installed) "" else "جينشن غير مثبتة"; visibility = if (installed) View.GONE else View.VISIBLE }
         rootView?.findViewById<View>(R.id.overlay_launch)?.apply { isEnabled = installed; alpha = if (installed) 1f else .38f }
     }
 
@@ -605,7 +605,7 @@ class OverlayWindowController(
         switchAutoPick?.isEnabled = shareOn
         rowAutoPick?.alpha = if (shareOn) 1f else .45f
         quickSkipChip?.apply { alpha = if (shareOn) 1f else .38f
-            text = if (overlayFontScale > 1.1f) "快跳" else "快速跳过"
+            text = if (overlayFontScale > 1.1f) "تخطٍ سريع" else "تخطٍ سريع"
             setTextColor(ContextCompat.getColor(themedContext, if (settings.quickSkipDialogueEnabled) R.color.pocket_primary else R.color.pocket_text_secondary))
             setBackgroundResource(if (settings.quickSkipDialogueEnabled) R.drawable.bg_pocket_chip else R.drawable.bg_pocket_group)
         }
@@ -626,11 +626,11 @@ class OverlayWindowController(
     }
 
     override fun onChatIconsRecognized(count: Int, topX: Int, topY: Int) {
-        appendLog("识别到对话选项 ${count} 个，最高位置 ($topX, $topY)")
+        appendLog("تم رصد ${count} خيارات حوار، أعلاها ($topX, $topY)")
     }
 
     override fun onChatIconClicked(x: Int, y: Int) {
-        appendLog("点击对话选项 ($x, $y)")
+        appendLog("الضغط على خيار الحوار ($x, $y)")
     }
 
     fun log(message: String, level: LogLevel = LogLevel.Info) {
@@ -660,7 +660,7 @@ class OverlayWindowController(
 
     fun updateProgress(value: PathingProgress) { mainHandler.post {
         progress = value
-        pathingStatus?.text = if (value.finished) "${logTimeFormat.format(Date())} 完成 ${value.completed} · 跳过 ${value.skipped} · 失败 ${value.failed}" else "${value.index}/${value.total} · ${value.name}"
+        pathingStatus?.text = if (value.finished) "${logTimeFormat.format(Date())} مكتمل ${value.completed} · تخطي ${value.skipped} · فشل ${value.failed}" else "${value.index}/${value.total} · ${value.name}"
         rootView?.findViewById<ProgressBar>(R.id.overlay_pathing_progress)?.apply { max = value.total.coerceAtLeast(1); progress = if (value.finished) value.total else value.index - 1 }
         refreshStatus()
     } }
@@ -671,7 +671,7 @@ class OverlayWindowController(
             setImageResource(if (running) R.drawable.ic_ui_stop else R.drawable.ic_ui_play_arrow)
             imageTintList = ColorStateList.valueOf(ContextCompat.getColor(themedContext,
                 if (running) R.color.pocket_error else if (hasRouteSelection) R.color.pocket_primary else R.color.pocket_text_disabled))
-            contentDescription = if (running) "停止地图追踪" else if (hasRouteSelection) "执行上次选择的路线" else "选择路线"
+            contentDescription = if (running) "إيقاف تتبع الخريطة" else if (hasRouteSelection) "تنفيذ آخر مسار محدد" else "اختيار مسار"
             TooltipCompat.setTooltipText(this, contentDescription)
         }
         rootView?.findViewById<View>(R.id.overlay_pathing_progress)?.visibility = if (routeRunning) View.VISIBLE else View.GONE
@@ -719,7 +719,7 @@ class OverlayWindowController(
         val text = logText ?: return
         if (!logWindowVisible) return
         val builder = SpannableStringBuilder()
-        if (logLines.isEmpty()) builder.append("等待识别…")
+        if (logLines.isEmpty()) builder.append("بانتظار التعرف…")
         for (line in logLines) {
             if (builder.isNotEmpty()) builder.append('\n')
             val start = builder.length; builder.append(line.time).append("  ")
@@ -744,7 +744,7 @@ class OverlayWindowController(
         logBodyView?.visibility = if (logExpanded) View.VISIBLE else View.GONE
         logHandleView?.findViewById<ImageButton>(R.id.overlay_log_expand)?.apply {
             setImageResource(if (logExpanded) R.drawable.ic_ui_expand_less else R.drawable.ic_ui_expand_more)
-            contentDescription = if (logExpanded) "收起日志正文" else "展开日志正文"; TooltipCompat.setTooltipText(this, contentDescription)
+            contentDescription = if (logExpanded) "طي السجل" else "توسيع السجل"; TooltipCompat.setTooltipText(this, contentDescription)
         }
         persistLogMode(); clampLogWindows()
     }
@@ -760,10 +760,10 @@ class OverlayWindowController(
         }
         logTitle?.text = when {
             routeRunning && p != null -> "${p.index}/${p.total} · ${p.name}"
-            routeRunning -> latestPathingStatus.ifEmpty { "正在读取路线…" }
+            routeRunning -> latestPathingStatus.ifEmpty { "جارٍ قراءة المسار…" }
             readoutRunning -> latestPathingStatus
-            p?.finished == true -> "完成 ${p.completed} · 跳过 ${p.skipped} · 失败 ${p.failed}"
-            else -> logLines.lastOrNull()?.message ?: "等待识别…"
+            p?.finished == true -> "مكتمل ${p.completed} · تخطي ${p.skipped} · فشل ${p.failed}"
+            else -> logLines.lastOrNull()?.message ?: "بانتظار التعرف…"
         }
         logTitle?.contentDescription = logTitle?.text
     }
@@ -818,12 +818,12 @@ class OverlayWindowController(
                 DrawableCompat.setTint(DrawableCompat.wrap(drawable).mutate(), color)
             }
         statusText?.text = when {
-            a11yUnavailable -> "无障碍异常"
-            routeRunning -> progress?.let { "路线 ${it.index}/${it.total}" } ?: "路线执行中"
-            readoutRunning -> "坐标显示中"
-            talking -> "对话中"
-            enabled -> "共享中"
-            else -> "未共享"
+            a11yUnavailable -> "خلل في إمكانية الوصول"
+            routeRunning -> progress?.let { "المسار ${it.index}/${it.total}" } ?: "جارٍ تنفيذ المسار"
+            readoutRunning -> "عرض الإحداثيات"
+            talking -> "جارٍ الحوار"
+            enabled -> "مشاركة نشطة"
+            else -> "غير مشتركة"
         }
         statusText?.setTextColor(ContextCompat.getColor(themedContext, when {
             a11yUnavailable -> R.color.pocket_warning
@@ -832,7 +832,7 @@ class OverlayWindowController(
             else -> R.color.pocket_text_secondary
         }))
         rootView?.findViewById<View>(R.id.overlay_warning)?.visibility = if (a11yUnavailable || captureInterrupted) View.VISIBLE else View.GONE
-        rootView?.findViewById<TextView>(R.id.overlay_warning_text)?.text = if (a11yUnavailable) "无障碍未连接" else "屏幕共享被中断"
+        rootView?.findViewById<TextView>(R.id.overlay_warning_text)?.text = if (a11yUnavailable) "إمكانية الوصول غير متصلة" else "انقطعت مشاركة الشاشة"
         refreshLogTitle()
         if (expanded) resizePanel()
         val badge = chatBadge

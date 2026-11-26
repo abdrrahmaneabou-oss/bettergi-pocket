@@ -21,7 +21,7 @@
             android:lineSpacingExtra="2dp"
             android:paddingHorizontal="10dp"
             android:paddingVertical="6dp"
-            android:text="等待识别…"
+            android:text="بانتظار التعرف…"
             android:textColor="@color/pocket_text"
             android:textSize="11sp" />
     </ScrollView>

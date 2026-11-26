@@ -2,7 +2,7 @@ package com.bettergi.pocket.pathing.map
 
 /** 路线指定优先；未填写、空字符串和纯空白跟随本次任务的设置。 */
 enum class MapMatchingMethod(val value: String, val label: String) {
-    TemplateMatch("TemplateMatch", "模板匹配"),
+    TemplateMatch("TemplateMatch", "مطابقة القوالب"),
     SIFT("SIFT", "SIFT");
 
     companion object {

@@ -63,8 +63,8 @@ class InputAccessibilityService : AccessibilityService() {
 
     companion object {
         private const val TAG = "BetterGI.Input"
-        const val DEFAULT_PROMPT = "请开启无障碍权限，才能模拟点击"
-        const val CRASHED_PROMPT = "无障碍服务已异常，请先关闭再重新打开"
+        const val DEFAULT_PROMPT = "فعّل إمكانية الوصول لمحاكاة الضغطات"
+        const val CRASHED_PROMPT = "خلل في خدمة إمكانية الوصول. أوقفها ثم أعد تفعيلها"
         const val ACTION_STATE_CHANGED = "com.bettergi.pocket.action.ACCESSIBILITY_CHANGED"
         private const val AUTHORITY_SUFFIX = ".a11y"
         private const val METHOD_STATUS = "status"

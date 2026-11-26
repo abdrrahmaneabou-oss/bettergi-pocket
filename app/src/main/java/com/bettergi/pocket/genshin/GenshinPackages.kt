@@ -27,13 +27,13 @@ object GenshinPackages {
     }
 
     fun displayName(packageName: String): String = when (packageName) {
-        "com.miHoYo.Yuanshen" -> "国服官服"
-        "com.miHoYo.ys.bilibili" -> "Bilibili服"
-        "com.miHoYo.GenshinImpact" -> "国际服"
-        "com.miHoYo.cloudgames.ys" -> "云原神"
-        "com.miHoYo.cloudgames.GenshinImpact" -> "云原神国际服"
-        "com.miHoYo.ys.mi" -> "小米渠道服"
-        else -> "原神"
+        "com.miHoYo.Yuanshen" -> "الخادم الصيني الرسمي"
+        "com.miHoYo.ys.bilibili" -> "خادم Bilibili"
+        "com.miHoYo.GenshinImpact" -> "الخادم الدولي"
+        "com.miHoYo.cloudgames.ys" -> "جينشن السحابية"
+        "com.miHoYo.cloudgames.GenshinImpact" -> "جينشن السحابية الدولية"
+        "com.miHoYo.ys.mi" -> "خادم شاومي"
+        else -> "جينشن"
     }
 
     fun shouldAttemptAutoLaunch(
