@@ -11,9 +11,9 @@ import com.bettergi.pocket.ui.*
 import java.math.BigDecimal
 
 enum class CandidateSlot(val title: String, val element: String? = null) {
-    Walker("行走位候选"), ShortGuardian("生存位 · 短E候选"), LongGuardian("生存位 · 长E候选"),
-    Hydro("水元素采集候选", "Hydro"), Electro("雷元素采集候选", "Electro"),
-    Anemo("风元素采集候选", "Anemo"), Pyro("火元素采集候选", "Pyro");
+    Walker("شخصيات التنقل المرشحة"), ShortGuardian("الحماية · مهارة قصيرة"), LongGuardian("الحماية · مهارة مطولة"),
+    Hydro("مرشحو جمع موارد الماء", "Hydro"), Electro("مرشحو جمع موارد الكهرباء", "Electro"),
+    Anemo("مرشحو جمع موارد الرياح", "Anemo"), Pyro("مرشحو جمع موارد النار", "Pyro");
     fun names(config: PathingSettings, repo: PathingSettingsRepository): List<String> = when (this) {
         Walker -> config.mainAvatars; ShortGuardian -> config.guardianShortAvatars; LongGuardian -> config.guardianLongAvatars
         else -> config.elementAvatars[element] ?: repo.defaultElementCandidates(element!!)
@@ -39,19 +39,19 @@ class SettingsPage(c: Context, wide: Boolean, private val repo: PathingSettingsR
         orientation = if (wide) HORIZONTAL else VERTICAL
         val execution = OverlayUi.column(c).apply { setPadding(dp(12), dp(4), dp(8), dp(12)) }
         val team = OverlayUi.column(c).apply { setPadding(dp(8), dp(4), dp(12), dp(12)) }
-        execution.addView(section("执行"))
+        execution.addView(section("التنفيذ"))
         val config = repo.get()
-        val matching = OverlayRow(c, "地图匹配", subtitle = "路线未指定时使用")
-        matching.trailing.addView(OverlayUi.segments(c, listOf("模板匹配", "SIFT"),
+        val matching = OverlayRow(c, "مطابقة الخريطة", subtitle = "تُستخدم إذا لم يحدد المسار طريقة المطابقة")
+        matching.trailing.addView(OverlayUi.segments(c, listOf("مطابقة القوالب", "SIFT"),
             if (config.mapMatchingMethod == MapMatchingMethod.SIFT) 1 else 0) { index ->
             repo.update { it.copy(mapMatchingMethod = if (index == 0) MapMatchingMethod.TemplateMatch else MapMatchingMethod.SIFT) }
         })
-        val gadget = OverlayRow(c, "自动小道具")
+        val gadget = OverlayRow(c, "استخدام الأداة تلقائياً")
         val gadgetStepper = StepperView(c, 100, Int.MAX_VALUE.toLong(), 100, config.useGadgetIntervalMs.toLong(),
             { "${seconds(it)} s" }, { value -> repo.update { it.copy(useGadgetIntervalMs = value.toInt()) } }, { stepper ->
-            editNumber("小道具间隔（秒）", seconds(repo.get().useGadgetIntervalMs.toLong())) { value ->
+            editNumber("فاصل الأداة (ثوانٍ)", seconds(repo.get().useGadgetIntervalMs.toLong())) { value ->
                 val ms = parseGadgetInterval(value)
-                if (ms == null) "请输入大于 0 的秒数，最多 3 位小数" else {
+                if (ms == null) "أدخل عدداً أكبر من صفر، حتى 3 منازل عشرية" else {
                     repo.update { it.copy(useGadgetIntervalMs = ms) }; stepper.setValue(ms.toLong()); null
                 }
             }
@@ -60,32 +60,32 @@ class SettingsPage(c: Context, wide: Boolean, private val repo: PathingSettingsR
         gadget.trailing.addView(SwitchCompat(c, null, androidx.appcompat.R.attr.switchStyle).apply {
             setThumbTintList(androidx.core.content.ContextCompat.getColorStateList(c, R.color.overlay_switch_thumb))
             setTrackTintList(androidx.core.content.ContextCompat.getColorStateList(c, R.color.overlay_switch_track))
-            contentDescription = "自动小道具"; isChecked = config.useGadgetEnabled
+            contentDescription = "استخدام الأداة تلقائياً"; isChecked = config.useGadgetEnabled
             setOnCheckedChangeListener { _, enabled -> repo.update { it.copy(useGadgetEnabled = enabled) }; gadgetStepper.isEnabled = enabled }
             layoutParams = LayoutParams(-2, -2).apply { marginStart = dp(8) }
         })
         gadgetStepper.isEnabled = config.useGadgetEnabled
-        val guardian = OverlayRow(c, "续盾间隔", subtitle = "自动 = 按角色战技冷却")
+        val guardian = OverlayRow(c, "فاصل تجديد الدرع", subtitle = "تلقائي = حسب زمن تبريد مهارة الشخصية")
         guardian.trailing.addView(StepperView(c, 0, 3_600_000, 1000, (config.guardianIntervalSeconds * 1000).toLong(),
-            { if (it == 0L) "自动" else "${seconds(it)} s" }, { value -> repo.update { it.copy(guardianIntervalSeconds = value / 1000.0) } }, { stepper ->
-            editNumber("续盾间隔（秒，0 为自动）", repo.get().guardianIntervalSeconds.toString()) { text ->
+            { if (it == 0L) "تلقائي" else "${seconds(it)} s" }, { value -> repo.update { it.copy(guardianIntervalSeconds = value / 1000.0) } }, { stepper ->
+            editNumber("فاصل تجديد الدرع (ثوانٍ، 0 للتلقائي)", repo.get().guardianIntervalSeconds.toString()) { text ->
                 val value = text.toDoubleOrNull()
-                if (value == null || !value.isFinite() || value != 0.0 && value !in 1.0..3600.0) "请输入 0 或 1～3600 秒"
+                if (value == null || !value.isFinite() || value != 0.0 && value !in 1.0..3600.0) "أدخل 0 أو من 1 إلى 3600 ثانية"
                 else { repo.update { it.copy(guardianIntervalSeconds = value) }; stepper.setValue((value * 1000).toLong()); null }
             }
         }))
         execution.addView(OverlayUi.group(c, matching, gadget, guardian))
-        team.addView(section("队伍角色 · 需单人四人队伍，执行中不要手动切人",
-            "按已选顺序匹配当前队伍，不在队伍里的候选跳过；生存位先匹配短E组，再匹配长E组。"))
+        team.addView(section("الفريق · فريق فردي من أربع شخصيات، لا تبدل يدوياً أثناء التنفيذ",
+            "تُطابق الشخصيات حسب ترتيب الاختيار، وتُتخطى غير الموجودة في الفريق. تُفضّل مهارة الحماية القصيرة ثم المطولة."))
         team.addView(OverlayUi.group(c,
-            candidate(CandidateSlot.Walker, "行走位", R.drawable.ic_ui_directions_walk, R.id.pathing_setting_main_avatar),
-            candidate(CandidateSlot.ShortGuardian, "生存位·短E", R.drawable.ic_ui_shield, R.id.pathing_setting_guardian_avatar),
-            candidate(CandidateSlot.LongGuardian, "生存位·长E", R.drawable.ic_ui_shield, R.id.pathing_setting_guardian_press)))
-        team.addView(section("元素采集 · 路线包含对应采集动作时才使用", "默认使用该元素所有具备采集能力的角色；清空即关闭。"))
+            candidate(CandidateSlot.Walker, "شخصية التنقل", R.drawable.ic_ui_directions_walk, R.id.pathing_setting_main_avatar),
+            candidate(CandidateSlot.ShortGuardian, "الحماية · مهارة قصيرة", R.drawable.ic_ui_shield, R.id.pathing_setting_guardian_avatar),
+            candidate(CandidateSlot.LongGuardian, "الحماية · مهارة مطولة", R.drawable.ic_ui_shield, R.id.pathing_setting_guardian_press)))
+        team.addView(section("الجمع العنصري · عند وجود إجراء جمع مناسب في المسار", "افتراضياً تُستخدم جميع الشخصيات المؤهلة من العنصر، والمسح يعطل الوظيفة."))
         val elements = OverlayUi.column(c).apply { setBackgroundResource(R.drawable.bg_pocket_group) }
         listOf(listOf(CandidateSlot.Hydro, CandidateSlot.Electro), listOf(CandidateSlot.Anemo, CandidateSlot.Pyro)).forEach { slots ->
             elements.addView(OverlayUi.row(c).apply { slots.forEach { slot ->
-                val label = mapOf(CandidateSlot.Hydro to "水", CandidateSlot.Electro to "雷", CandidateSlot.Anemo to "风", CandidateSlot.Pyro to "火").getValue(slot)
+                val label = mapOf(CandidateSlot.Hydro to "ماء", CandidateSlot.Electro to "كهرباء", CandidateSlot.Anemo to "رياح", CandidateSlot.Pyro to "نار").getValue(slot)
                 val icon = mapOf(CandidateSlot.Hydro to R.drawable.ic_ui_water_drop, CandidateSlot.Electro to R.drawable.ic_ui_bolt,
                     CandidateSlot.Anemo to R.drawable.ic_ui_air, CandidateSlot.Pyro to R.drawable.ic_ui_local_fire_department).getValue(slot)
                 val row = candidate(slot, label, icon)
@@ -106,7 +106,7 @@ class SettingsPage(c: Context, wide: Boolean, private val repo: PathingSettingsR
         addView(OverlayUi.row(context).apply {
             minimumHeight = dp(28)
             addView(OverlayUi.text(context, label, 11f, R.color.pocket_text_secondary, true), LayoutParams(0, -2, 1f))
-            if (info != null) addView(OverlayUi.iconButton(context, R.drawable.ic_ui_info, "说明") { description.visibility = if (description.visibility == GONE) VISIBLE else GONE })
+            if (info != null) addView(OverlayUi.iconButton(context, R.drawable.ic_ui_info, "شرح") { description.visibility = if (description.visibility == GONE) VISIBLE else GONE })
         }); addView(description)
     }
     private fun candidate(slot: CandidateSlot, label: String, icon: Int, rowId: Int = View.NO_ID): OverlayRow {
@@ -134,23 +134,23 @@ class SettingsPage(c: Context, wide: Boolean, private val repo: PathingSettingsR
         row.setOnClickListener { pick(slot) }; candidateRows[slot] = row; return row
     }
     private fun elementCount(slot: CandidateSlot, names: List<String>, width: Int): String = when {
-        names.isEmpty() -> "已关闭"
-        width > 0 && width < dp((180 * resources.configuration.fontScale).toInt()) -> "${names.size} 人"
-        names == slot.defaults(repo) -> "默认 ${names.size} 人"
-        else -> "${names.size} 人"
+        names.isEmpty() -> "معطل"
+        width > 0 && width < dp((180 * resources.configuration.fontScale).toInt()) -> "${names.size} شخصيات"
+        names == slot.defaults(repo) -> "افتراضي: ${names.size} شخصيات"
+        else -> "${names.size} شخصيات"
     }
     fun refresh() {
         val config = repo.get()
         candidateRows.forEach { (slot, row) ->
             val names = slot.names(config, repo)
-            row.findViewWithTag<android.widget.TextView>("value")?.text = names.joinToString("、").ifEmpty { "已关闭" }
+            row.findViewWithTag<android.widget.TextView>("value")?.text = names.joinToString("、").ifEmpty { "معطل" }
             row.findViewWithTag<android.widget.TextView>("count").text = when {
-                names.isEmpty() -> "已关闭"; slot.element == null -> names.size.toString()
+                names.isEmpty() -> "معطل"; slot.element == null -> names.size.toString()
                 else -> elementCount(slot, names, row.width)
             }
             row.alpha = if (names.isEmpty()) .5f else 1f
             androidx.appcompat.widget.TooltipCompat.setTooltipText(row,
-                "${slot.title}：${if (names.isEmpty()) "已关闭" else names.joinToString("、")}")
+                "${slot.title}：${if (names.isEmpty()) "معطل" else names.joinToString("、")}")
         }
     }
     companion object {
@@ -167,5 +167,5 @@ fun elementColor(c: Context, element: String?): Int = androidx.core.content.Cont
     "Dendro" -> R.color.pocket_dendro; else -> R.color.pocket_text_secondary
 })
 
-fun elementLabel(element: String?): String = mapOf("Pyro" to "火", "Hydro" to "水", "Anemo" to "风",
-    "Electro" to "雷", "Cryo" to "冰", "Geo" to "岩", "Dendro" to "草")[element] ?: "无元素"
+fun elementLabel(element: String?): String = mapOf("Pyro" to "نار", "Hydro" to "ماء", "Anemo" to "رياح",
+    "Electro" to "كهرباء", "Cryo" to "جليد", "Geo" to "صخر", "Dendro" to "طبيعة")[element] ?: "بلا عنصر"

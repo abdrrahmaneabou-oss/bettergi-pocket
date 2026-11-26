@@ -118,31 +118,31 @@ class PathingWindow(private val base: Context, private val store: PathingRouteSt
     private fun buildHeader() {
         val bar = header ?: return; bar.removeAllViews()
         if (picker != null || numberEditor != null) {
-            bar.addView(OverlayUi.iconButton(context, R.drawable.ic_ui_arrow_back, "返回设置") { back() })
+            bar.addView(OverlayUi.iconButton(context, R.drawable.ic_ui_arrow_back, "العودة للإعدادات") { back() })
             val title = OverlayUi.row(context)
             val wide = params!!.width / context.resources.displayMetrics.density >= 560
-            title.addView(OverlayUi.text(context, if (numberEditor != null) "编辑数值" else slot!!.title, 15f, bold = true).apply {
+            title.addView(OverlayUi.text(context, if (numberEditor != null) "تعديل القيمة" else slot!!.title, 15f, bold = true).apply {
                 maxLines = 1; ellipsize = TextUtils.TruncateAt.END
             }, LinearLayout.LayoutParams(if (wide) -2 else 0, -2, if (wide) 0f else 1f))
-            if (wide && picker != null) title.addView(OverlayUi.text(context, "按顺序选出第一个在队角色", 11f, R.color.pocket_text_secondary).apply {
+            if (wide && picker != null) title.addView(OverlayUi.text(context, "اختيار أول شخصية في الفريق حسب الترتيب", 11f, R.color.pocket_text_secondary).apply {
                 maxLines = 1; ellipsize = TextUtils.TruncateAt.END; setPadding(dp(12), 0, 0, 0)
             }, LinearLayout.LayoutParams(0, -2, 1f))
             bar.addView(title, LinearLayout.LayoutParams(0, -2, 1f))
             if (picker != null) {
-                bar.addView(OverlayUi.button(context, "恢复默认") { picker?.defaults() }.apply { id = R.id.avatar_select_defaults })
-                bar.addView(OverlayUi.button(context, "清空") { picker?.clear() }.apply { id = R.id.avatar_select_clear })
+                bar.addView(OverlayUi.button(context, "استعادة الافتراضي") { picker?.defaults() }.apply { id = R.id.avatar_select_defaults })
+                bar.addView(OverlayUi.button(context, "مسح") { picker?.clear() }.apply { id = R.id.avatar_select_clear })
             }
         } else {
             bar.addView(OverlayUi.icon(context, R.drawable.ic_ui_map), LinearLayout.LayoutParams(dp(20), dp(20)))
-            bar.addView(OverlayUi.text(context, "地图追踪", 15f, bold = true).apply { setPadding(dp(12), 0, dp(16), 0) })
-            val tabs = OverlayUi.segments(context, listOf("路线", "设置"), tab,
+            bar.addView(OverlayUi.text(context, "تتبع الخريطة", 15f, bold = true).apply { setPadding(dp(12), 0, dp(16), 0) })
+            val tabs = OverlayUi.segments(context, listOf("المسارات", "الإعدادات"), tab,
                 listOf(R.id.pathing_tab_routes, R.id.pathing_tab_settings)) { selectTab(it) }
             bar.addView(tabs); bar.addView(View(context), LinearLayout.LayoutParams(0, 1, 1f))
-            bar.addView(OverlayUi.iconButton(context, R.drawable.ic_ui_my_location, "显示坐标（会关闭窗口）") { dismiss(); onToggleReadout() }.apply {
+            bar.addView(OverlayUi.iconButton(context, R.drawable.ic_ui_my_location, "عرض الإحداثيات (يغلق النافذة)") { dismiss(); onToggleReadout() }.apply {
                 if (isReadoutRunning()) imageTintList = android.content.res.ColorStateList.valueOf(androidx.core.content.ContextCompat.getColor(context, R.color.pocket_primary))
             })
         }
-        bar.addView(OverlayUi.iconButton(context, R.drawable.ic_ui_close, "关闭地图追踪") { slot = null; dismiss() }.apply { id = R.id.pathing_window_close })
+        bar.addView(OverlayUi.iconButton(context, R.drawable.ic_ui_close, "إغلاق تتبع الخريطة") { slot = null; dismiss() }.apply { id = R.id.pathing_window_close })
     }
     private fun openPicker(value: CandidateSlot) {
         input?.finish(); slot = value
@@ -164,7 +164,7 @@ class PathingWindow(private val base: Context, private val store: PathingRouteSt
             imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_DONE }
         column.addView(OverlayUi.text(context, title)); column.addView(field)
         val error = OverlayUi.text(context, "", 11f, R.color.pocket_error); column.addView(error)
-        column.addView(OverlayUi.button(context, "保存", true) {
+        column.addView(OverlayUi.button(context, "حفظ", true) {
             val reason = validate(field.text.toString()); error.text = reason.orEmpty()
             if (reason == null) back()
         })
@@ -174,8 +174,8 @@ class PathingWindow(private val base: Context, private val store: PathingRouteSt
     private fun settingsSummary(): String {
         val config = settings.get()
         return listOf(config.mapMatchingMethod.label,
-            if (config.useGadgetEnabled) "小道具 ${SettingsPage.seconds(config.useGadgetIntervalMs.toLong())}s" else "小道具关",
-            config.mainAvatars.firstOrNull() ?: "行走位关").joinToString(" · ")
+            if (config.useGadgetEnabled) "الأداة ${SettingsPage.seconds(config.useGadgetIntervalMs.toLong())} ث" else "الأداة معطلة",
+            config.mainAvatars.firstOrNull() ?: "شخصية التنقل معطلة").joinToString(" · ")
     }
     private fun loadCatalog() {
         if (loading || disposed) return
@@ -198,8 +198,8 @@ class PathingWindow(private val base: Context, private val store: PathingRouteSt
                 }
                 main.post { loading = false; if (!disposed) { catalog = loaded; routes?.setCatalog(loaded) } }
             } catch (e: Exception) {
-                main.post { loading = false; if (!disposed) { error = "无法读取路线目录：${e.message ?: e.javaClass.simpleName}"
-                    log(error!!); routes?.loadFailed("读取失败，请关闭窗口后重试") } }
+                main.post { loading = false; if (!disposed) { error = "تعذر قراءة مجلد المسارات: ${e.message ?: e.javaClass.simpleName}"
+                    log(error!!); routes?.loadFailed("فشلت القراءة. أغلق النافذة وحاول مجدداً") } }
             }
         }
     }

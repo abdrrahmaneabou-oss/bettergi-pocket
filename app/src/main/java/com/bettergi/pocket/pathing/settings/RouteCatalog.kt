@@ -20,13 +20,13 @@ class RouteCatalog(val roots: List<Node>) {
         val matchMetadataReadable: Boolean = true,
     ) {
         val routePaths: List<String> = if (file) listOf(relativePath) else children.flatMap { it.routePaths }
-        val displayName: String get() = if (file) name else name.substringBefore('@')
+        val displayName: String get() = arabicDisplayName(if (file) name else name.substringBefore('@'))
         val author: String get() = if (file) "" else name.substringAfter('@', "")
 
         fun matchingDescription(default: MapMatchingMethod): String {
-            if (!matchMetadataReadable) return "匹配方式读取失败"
+            if (!matchMetadataReadable) return "تعذر قراءة طريقة المطابقة"
             val method = MapMatchingMethod.resolve(mapMatchMethod, default)
-            val source = if (mapMatchMethod.isNullOrBlank()) "跟随设置" else "路线指定"
+            val source = if (mapMatchMethod.isNullOrBlank()) "حسب الإعدادات" else "محدد في المسار"
             return "${method.label}（$source）"
         }
     }
@@ -66,12 +66,12 @@ class RouteCatalog(val roots: List<Node>) {
     }
 
     fun selectionSummary(selection: Set<String>): String {
-        if (selection.isEmpty()) return "未选择路线"
+        if (selection.isEmpty()) return "لم يتم اختيار مسار"
         val queue = queueEntries(selection)
-        if (queue.isEmpty()) return "未选择路线"
+        if (queue.isEmpty()) return "لم يتم اختيار مسار"
         val count = queue.sumOf { it.routePaths.size }
-        return "已选 $count 条 · ${queue.firstOrNull()?.displayName.orEmpty()}" +
-            if (queue.size > 1) " 等 ${queue.size} 组" else ""
+        return "المحدد $count · ${queue.firstOrNull()?.displayName.orEmpty()}" +
+            if (queue.size > 1) " وغيرها (${queue.size} مجموعات)" else ""
     }
 
     /** 以目录为单位浏览；搜索也返回目录，方便一次选中整组路线。 */
@@ -83,7 +83,7 @@ class RouteCatalog(val roots: List<Node>) {
         fun visit(children: List<Node>) {
             for (node in children) {
                 if (out.size > limit) return
-                val searchable = "${node.relativePath.lowercase(Locale.ROOT)} ${node.searchText}"
+                val searchable = "${node.relativePath.lowercase(Locale.ROOT)} ${node.searchText} ${node.displayName.lowercase(Locale.ROOT)}"
                 if (keywords.all { it in searchable }) {
                     out += Row(node, 0, node.relativePath.substringBeforeLast('/', ""), false)
                 } else if (!node.file) {
@@ -148,6 +148,62 @@ class RouteCatalog(val roots: List<Node>) {
     }
 
     companion object {
+        private val arabicNames = mapOf(
+            "地方特产" to "الموارد المحلية",
+            "稻妻" to "إينازوما",
+            "枫丹" to "فونتين",
+            "璃月" to "ليويه",
+            "蒙德" to "موندشتات",
+            "纳塔" to "ناتلان",
+            "挪德卡莱" to "نود كراي",
+            "须弥" to "سوميرو",
+            "至冬" to "سنيجنايا",
+            "清心" to "تشينغشين",
+            "琉璃袋" to "فيوليت غراس",
+            "霓裳花" to "زهرة الحرير",
+            "琉璃百合" to "زنبق غليز",
+            "夜泊石" to "نوتيلوكوس",
+            "石珀" to "كور لابيس",
+            "绝云椒椒" to "فلفل جويون",
+            "星螺" to "صدفة النجمة",
+            "落落莓" to "فال بيري",
+            "塞西莉亚花" to "سيسيليا",
+            "风车菊" to "أستر عجلة الرياح",
+            "嘟嘟莲" to "زنبق كالا",
+            "钩钩果" to "وولف هوك",
+            "慕风蘑菇" to "فطر فيلانيمو",
+            "小灯草" to "عشبة المصباح",
+            "蒲公英籽" to "بذور الهندباء",
+            "鸣草" to "عشبة ناكو",
+            "绯樱绣球" to "زهرة ساكورا",
+            "鬼兜虫" to "أونيكابوتو",
+            "血斛" to "ديندروبيوم",
+            "晶化骨髓" to "نخاع بلوري",
+            "海灵芝" to "غانوديرما البحر",
+            "珊瑚真珠" to "لؤلؤ سانغو",
+            "天云草实" to "فاكهة أماكومو",
+            "幽灯蕈" to "فطر فلورسنت",
+            "月莲" to "لوتس نيلوتبال",
+            "劫波莲" to "لوتس كالبالاتا",
+            "树王圣体菇" to "فطر روكاشافا",
+            "帕蒂沙兰" to "باديسارا",
+            "赤念果" to "ريدكريست",
+            "圣金虫" to "الجعران",
+            "沙脂蛹" to "شرنقة دهن الرمل",
+            "悼灵花" to "زهرة الحداد",
+            "万相石" to "تريشيرايت",
+            "柔灯铃" to "لوميدوس بيل",
+            "虹彩蔷薇" to "وردة قوس قزح",
+            "海露花" to "روماريتايم",
+            "苍晶螺" to "بيريل كونش",
+            "幽光星星" to "لوميتوائل",
+            "子探测单元" to "وحدة الكشف الفرعية",
+            "湖光铃兰" to "زنبق لايت ليك",
+            "初露之源" to "ينبوع الندى الأول",
+            "清水玉" to "يشم المياه الصافية"
+        )
+        fun arabicDisplayName(value: String): String = arabicNames.entries.fold(value) { result, (source, target) -> result.replace(source, target) }
+
         const val INDEX_ASSET = "pathing/routes-index.txt"
         const val METADATA_ASSET = "pathing/routes-metadata.json"
         const val ROOT_ASSET = "pathing/routes"

@@ -28,7 +28,7 @@ class AvatarPickerPage(c: Context, private val slot: CandidateSlot, private val 
     private val selection = OrderedAvatarSelection(slot.names(repo.get(), repo))
     private val selectedTitle = OverlayUi.text(c, "", 12f, R.color.pocket_text_secondary, true).apply { id = R.id.avatar_select_count }
     private val notice = OverlayUi.text(c, "", 11f, R.color.pocket_warning)
-    private val undo = OverlayUi.button(c, "撤销") { undo() }
+    private val undo = OverlayUi.button(c, "تراجع") { undo() }
     private var backup: PathingSettings? = null
     private val handler = Handler(Looper.getMainLooper())
     private val hideUndo = Runnable { backup = null; notice.visibility = GONE; undo.visibility = GONE }
@@ -49,7 +49,7 @@ class AvatarPickerPage(c: Context, private val slot: CandidateSlot, private val 
             override fun onScrollStateChanged(rv: RecyclerView, state: Int) { if (state == RecyclerView.SCROLL_STATE_DRAGGING) input.finish() }
         })
     }
-    private val empty = OverlayUi.text(c, "没有匹配的角色", 13f).apply { gravity = android.view.Gravity.CENTER }
+    private val empty = OverlayUi.text(c, "لا توجد شخصيات مطابقة", 13f).apply { gravity = android.view.Gravity.CENTER }
     private val touchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0) {
         override fun onMove(rv: RecyclerView, from: RecyclerView.ViewHolder, to: RecyclerView.ViewHolder): Boolean {
             val a = from.adapterPosition; val b = to.adapterPosition
@@ -63,7 +63,7 @@ class AvatarPickerPage(c: Context, private val slot: CandidateSlot, private val 
         val chosen = OverlayUi.column(c)
         chosen.addView(OverlayUi.row(c).apply {
             minimumHeight = dp(32); setPadding(dp(12), 0, dp(8), 0)
-            addView(selectedTitle, LayoutParams(0, -2, 1f)); addView(OverlayUi.text(c, "拖动排序", 11f, R.color.pocket_text_secondary))
+            addView(selectedTitle, LayoutParams(0, -2, 1f)); addView(OverlayUi.text(c, "اسحب للترتيب", 11f, R.color.pocket_text_secondary))
         })
         chosen.addView(selected, LayoutParams(-1, 0, 1f)); touchHelper.attachToRecyclerView(selected)
         val message = OverlayUi.row(c).apply {
@@ -73,7 +73,7 @@ class AvatarPickerPage(c: Context, private val slot: CandidateSlot, private val 
         OverlayUi.leadingIcon(undo, R.drawable.ic_ui_undo)
         val available = OverlayUi.column(c).apply { setPadding(dp(8), 0, dp(8), 0) }
         val search = EditText(c).apply {
-            id = R.id.avatar_select_search; textSize = 13f; isSingleLine = true; hint = "搜索中文名、英文名或别名"
+            id = R.id.avatar_select_search; textSize = 13f; isSingleLine = true; hint = "ابحث بالاسم الصيني أو الإنجليزي أو الاسم البديل"
             setPadding(dp(8), 0, dp(8), 0); setBackgroundResource(R.drawable.bg_pocket_group)
             imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH
         }
@@ -86,12 +86,12 @@ class AvatarPickerPage(c: Context, private val slot: CandidateSlot, private val 
         available.addView(OverlayUi.row(c).apply {
             minimumHeight = dp(40); addView(OverlayUi.icon(c, R.drawable.ic_ui_search), LayoutParams(dp(20), dp(20)))
             addView(search, LayoutParams(0, dp(28), 1f))
-            addView(OverlayUi.iconButton(c, R.drawable.ic_ui_cancel, "清除搜索") { search.setText(""); input.finish() })
+            addView(OverlayUi.iconButton(c, R.drawable.ic_ui_cancel, "مسح البحث") { search.setText(""); input.finish() })
             if (slot.element == null) {
                 val filters = HorizontalScrollView(c).apply { isHorizontalScrollBarEnabled = false }
                 val chips = OverlayUi.row(c)
                 (listOf<String?>(null) + listOf("Hydro", "Pyro", "Electro", "Anemo", "Cryo", "Geo", "Dendro")).forEach { element ->
-                    chips.addView(OverlayUi.button(c, if (element == null) "全部" else elementLabel(element)) {
+                    chips.addView(OverlayUi.button(c, if (element == null) "الكل" else elementLabel(element)) {
                         input.finish(); filter = element
                         for (i in 0 until chips.childCount) chips.getChildAt(i).alpha = if (chips.getChildAt(i).tag == element) 1f else .5f
                         renderGrid()
@@ -118,11 +118,11 @@ class AvatarPickerPage(c: Context, private val slot: CandidateSlot, private val 
         val other = when (slot) { CandidateSlot.ShortGuardian -> config.guardianLongAvatars; CandidateSlot.LongGuardian -> config.guardianShortAvatars; else -> emptyList() }
         val moved = name !in selection.values && name in other
         selection.toggle(name); save()
-        if (moved) showNotice("已从${if (slot == CandidateSlot.ShortGuardian) "长E" else "短E"}组移出 $name", false)
+        if (moved) showNotice("تم نقل $name من مجموعة ${if (slot == CandidateSlot.ShortGuardian) "مهارة مطولة" else "مهارة قصيرة"}", false)
     }
     private fun save() { slot.save(repo, selection.values); render() }
     private fun render() {
-        selectedTitle.text = if (selection.values.isEmpty()) "未选择，此项关闭" else "已选 ${selection.values.size} 人"
+        selectedTitle.text = if (selection.values.isEmpty()) "لا اختيار، الوظيفة معطلة" else "المحدد: ${selection.values.size}"
         selectedAdapter.submit(selection.values); renderGrid()
     }
     private fun renderGrid() {
@@ -130,11 +130,11 @@ class AvatarPickerPage(c: Context, private val slot: CandidateSlot, private val 
         val filtered = options.filter { avatar -> (filter == null || avatar.element == filter) &&
             (query.isEmpty() || (listOf(avatar.name, avatar.nameEn) + avatar.aliases).any { it.lowercase(Locale.ROOT).contains(query) }) }
         gridAdapter.submitList(filtered.map { GridItem(it, selection.values.indexOf(it.name) + 1,
-            if (it.name in other) if (slot == CandidateSlot.ShortGuardian) "长E" else "短E" else "") })
+            if (it.name in other) if (slot == CandidateSlot.ShortGuardian) "مهارة مطولة" else "مهارة قصيرة" else "") })
         empty.visibility = if (filtered.isEmpty()) VISIBLE else GONE
     }
-    fun clear() = replace(emptyList(), "已清空候选")
-    fun defaults() = replace(slot.defaults(repo), "已恢复默认")
+    fun clear() = replace(emptyList(), "تم مسح المرشحين")
+    fun defaults() = replace(slot.defaults(repo), "تمت استعادة الافتراضي")
     private fun replace(names: List<String>, message: String) { input.finish(); backup = repo.get(); selection.replace(names); save(); showNotice(message, true) }
     private fun undo() {
         val before = backup ?: return
@@ -162,27 +162,27 @@ class AvatarPickerPage(c: Context, private val slot: CandidateSlot, private val 
         override fun onCreateViewHolder(parent: ViewGroup, type: Int): Holder {
             val row = OverlayUi.row(context).apply { minimumHeight = dp(40); setPadding(dp(12), 0, dp(4), 0); layoutParams = RecyclerView.LayoutParams(-1, -2) }
             val number = OverlayUi.text(context, "", 12f, R.color.pocket_primary, true)
-            val drag = OverlayUi.iconButton(context, R.drawable.ic_ui_drag_indicator, "长按拖动排序") {}
+            val drag = OverlayUi.iconButton(context, R.drawable.ic_ui_drag_indicator, "اضغط مطولاً واسحب للترتيب") {}
             val name = OverlayUi.text(context); val detail = OverlayUi.text(context, "", 11f, R.color.pocket_text_secondary)
             row.addView(number); row.addView(drag); row.addView(OverlayUi.row(context).apply {
                 addView(name, LayoutParams(-2, -2)); addView(detail, LayoutParams(0, -2, 1f).apply { marginStart = dp(8) })
             }, LayoutParams(0, -2, 1f))
-            val remove = OverlayUi.iconButton(context, R.drawable.ic_ui_close, "移除角色") {}; row.addView(remove)
+            val remove = OverlayUi.iconButton(context, R.drawable.ic_ui_close, "إزالة الشخصية") {}; row.addView(remove)
             return Holder(row, number, drag, name, detail, remove)
         }
         override fun onBindViewHolder(h: Holder, index: Int) {
             val name = names[index]; val avatar = catalog.byName(name)
-            h.number.text = (index + 1).toString(); h.name.text = name
+            h.number.text = (index + 1).toString(); h.name.text = catalog.byName(name)?.nameEn ?: name
             h.detail.text = avatar?.let {
                 val cooldown = if (slot == CandidateSlot.LongGuardian && it.skillHoldCd > 0) it.skillHoldCd else it.skillCd
                 "${elementLabel(it.element)} · E ${java.math.BigDecimal.valueOf(cooldown).stripTrailingZeros().toPlainString()}s"
             }.orEmpty()
             h.detail.setTextColor(elementColor(context, avatar?.element)); h.detail.maxLines = 1; h.detail.ellipsize = TextUtils.TruncateAt.END
-            h.remove.contentDescription = "移除 $name"; h.remove.setOnClickListener { toggle(name) }
+            h.remove.contentDescription = "إزالة $name"; h.remove.setOnClickListener { toggle(name) }
             h.drag.setOnTouchListener { _, event -> if (event.actionMasked == MotionEvent.ACTION_DOWN) { input.finish(); touchHelper.startDrag(h) }; false }
-            ViewCompat.replaceAccessibilityAction(h.itemView, AccessibilityNodeInfoCompat.AccessibilityActionCompat.ACTION_SCROLL_BACKWARD, "提高优先级") { _, _ -> selection.move(name, -1); save(); true }
-            ViewCompat.replaceAccessibilityAction(h.itemView, AccessibilityNodeInfoCompat.AccessibilityActionCompat.ACTION_SCROLL_FORWARD, "降低优先级") { _, _ -> selection.move(name, 1); save(); true }
-            h.itemView.contentDescription = "优先级 ${index + 1}，$name，${h.detail.text}"
+            ViewCompat.replaceAccessibilityAction(h.itemView, AccessibilityNodeInfoCompat.AccessibilityActionCompat.ACTION_SCROLL_BACKWARD, "رفع الأولوية") { _, _ -> selection.move(name, -1); save(); true }
+            ViewCompat.replaceAccessibilityAction(h.itemView, AccessibilityNodeInfoCompat.AccessibilityActionCompat.ACTION_SCROLL_FORWARD, "خفض الأولوية") { _, _ -> selection.move(name, 1); save(); true }
+            h.itemView.contentDescription = "الأولوية ${index + 1}، $name، ${h.detail.text}"
         }
         inner class Holder(v: View, val number: TextView, val drag: ImageButton, val name: TextView, val detail: TextView, val remove: ImageButton) : RecyclerView.ViewHolder(v)
     }
@@ -200,12 +200,12 @@ class AvatarPickerPage(c: Context, private val slot: CandidateSlot, private val 
             return Holder(row, dot, name, number)
         }
         override fun onBindViewHolder(h: Holder, position: Int) {
-            val item = getItem(position); h.name.text = item.avatar.name
+            val item = getItem(position); h.name.text = item.avatar.nameEn
             h.number.text = if (item.priority > 0) item.priority.toString() else item.otherGroup
             h.dot.background = android.graphics.drawable.GradientDrawable().apply { shape = android.graphics.drawable.GradientDrawable.OVAL; setColor(elementColor(context, item.avatar.element)) }
             h.itemView.setBackgroundResource(if (item.priority > 0) R.drawable.bg_pocket_chip else R.drawable.bg_pocket_group)
             h.itemView.setOnClickListener { toggle(item.avatar.name) }
-            h.itemView.contentDescription = "${item.avatar.name}，${if (item.priority > 0) "已选，优先级 ${item.priority}" else "未选"}${item.otherGroup}"
+            h.itemView.contentDescription = "${item.avatar.name}，${if (item.priority > 0) "محدد، الأولوية ${item.priority}" else "غير محدد"}${item.otherGroup}"
             androidx.appcompat.widget.TooltipCompat.setTooltipText(h.itemView, "${item.avatar.name} · ${item.avatar.nameEn}")
         }
         inner class Holder(v: View, val dot: View, val name: TextView, val number: TextView) : RecyclerView.ViewHolder(v)

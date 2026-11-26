@@ -41,24 +41,24 @@ class RoutesPage(c: Context, private val wide: Boolean, private val state: Route
         setPadding(dp(8), 0, dp(8), 0); setBackgroundResource(R.drawable.bg_pocket_group)
         imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH
     }
-    private val all = OverlayUi.iconButton(c, R.drawable.ic_ui_check_box_outline_blank, "选择列表中显示的项") { toggleVisible() }
-    private val up = OverlayUi.iconButton(c, R.drawable.ic_ui_arrow_back, "返回上一级") { navigate(state.directory.substringBeforeLast('/', "")) }
-    private val clearSearch = OverlayUi.iconButton(c, R.drawable.ic_ui_cancel, "清除搜索") { search.setText(""); input.finish() }
-    private val searchToggle = OverlayUi.iconButton(c, R.drawable.ic_ui_search, "搜索当前目录") { showSearch(true); input.begin(search) }
+    private val all = OverlayUi.iconButton(c, R.drawable.ic_ui_check_box_outline_blank, "تحديد العناصر الظاهرة") { toggleVisible() }
+    private val up = OverlayUi.iconButton(c, R.drawable.ic_ui_arrow_back, "رجوع") { navigate(state.directory.substringBeforeLast('/', "")) }
+    private val clearSearch = OverlayUi.iconButton(c, R.drawable.ic_ui_cancel, "مسح البحث") { search.setText(""); input.finish() }
+    private val searchToggle = OverlayUi.iconButton(c, R.drawable.ic_ui_search, "البحث في المجلد الحالي") { showSearch(true); input.begin(search) }
     private val hint = OverlayUi.text(c, "", 11f, R.color.pocket_warning)
     private val empty = OverlayUi.column(c)
-    private val emptyText = OverlayUi.text(c, "正在读取路线目录", 13f)
+    private val emptyText = OverlayUi.text(c, "جارٍ قراءة مجلد المسارات", 13f)
     private val progress = ProgressBar(c)
     private val adapter = RouteAdapter(::open, ::toggle)
     private val list = RecyclerView(c).apply { id = R.id.pathing_browser_list; layoutManager = LinearLayoutManager(c); adapter = this@RoutesPage.adapter }
     private val queue = SelectionQueue(c, ::locate, { selection.removeAll(it.routePaths.toSet()); save() }, ::clearQueue, ::restoreQueue)
-    private val executeButton = OverlayUi.button(c, "选择路线后执行", true) { attemptExecute() }
+    private val executeButton = OverlayUi.button(c, "اختر مساراً للتنفيذ", true) { attemptExecute() }
     private val warning = OverlayUi.row(c)
     private val warningText = OverlayUi.text(c, "", 11f, R.color.pocket_warning)
     private val settingsSummary = OverlayUi.button(c, "", click = showSettings)
     private val queuePanel = OverlayUi.column(c)
     private val compactBar = OverlayUi.row(c)
-    private val compactCount = OverlayUi.button(c, "已选 0 条 · 查看") { showQueue(true) }
+    private val compactCount = OverlayUi.button(c, "المحدد 0 · عرض") { showQueue(true) }
     private var queueOnly = false
     init {
         orientation = if (wide) HORIZONTAL else VERTICAL
@@ -81,7 +81,7 @@ class RoutesPage(c: Context, private val wide: Boolean, private val state: Route
         empty.addView(progress, LayoutParams(dp(32), dp(32)))
         empty.addView(OverlayUi.icon(c, R.drawable.ic_ui_search), LayoutParams(dp(24), dp(24)))
         empty.addView(emptyText)
-        empty.addView(OverlayUi.button(c, "清除搜索") { search.setText("") }.apply { tag = "clear" })
+        empty.addView(OverlayUi.button(c, "مسح البحث") { search.setText("") }.apply { tag = "clear" })
         body.addView(empty, FrameLayout.LayoutParams(-1, -1)); browser.addView(body, LayoutParams(-1, 0, 1f))
         list.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrollStateChanged(rv: RecyclerView, next: Int) { if (next == RecyclerView.SCROLL_STATE_DRAGGING) input.finish() }
@@ -93,7 +93,7 @@ class RoutesPage(c: Context, private val wide: Boolean, private val state: Route
             minimumHeight = dp(36); setPadding(dp(8), dp(4), dp(4), dp(4)); setBackgroundResource(R.drawable.bg_pocket_warning)
             addView(OverlayUi.icon(c, R.drawable.ic_ui_warning, R.color.pocket_warning), LayoutParams(dp(16), dp(16)))
             addView(warningText, LayoutParams(0, -2, 1f).apply { marginStart = dp(4) })
-            addView(OverlayUi.button(c, "去开启") { fix(preflight()) }.apply { tag = "fix" })
+            addView(OverlayUi.button(c, "تفعيل") { fix(preflight()) }.apply { tag = "fix" })
         }
         queuePanel.addView(warning, LayoutParams(-1, -2).apply { setMargins(dp(12), 0, dp(12), dp(4)) })
         if (wide) {
@@ -148,7 +148,7 @@ class RoutesPage(c: Context, private val wide: Boolean, private val state: Route
     }
     private fun showQueue(show: Boolean) {
         input.finish(); queueOnly = show; browser.visibility = if (show) GONE else VISIBLE; queuePanel.visibility = if (show) VISIBLE else GONE
-        compactCount.text = if (show) "返回路线列表" else "已选 ${selection.size} 条 · 查看"
+        compactCount.text = if (show) "العودة إلى المسارات" else "المحدد ${selection.size} · عرض"
         compactCount.setOnClickListener { showQueue(!queueOnly) }
     }
     fun refreshPreflight() {
@@ -160,8 +160,8 @@ class RoutesPage(c: Context, private val wide: Boolean, private val state: Route
             if (executeButton.isEnabled) R.color.pocket_on_primary else R.color.pocket_text_disabled))
         executeButton.background.alpha = if (executeButton.isEnabled) 255 else 31
         settingsSummary.text = summary()
-        TooltipCompat.setTooltipText(executeButton, check.reason ?: "按执行队列顺序开始")
-        if (!wide && !queueOnly && !check.ready) compactCount.text = "查看队列 · 检查条件"
+        TooltipCompat.setTooltipText(executeButton, check.reason ?: "البدء حسب ترتيب قائمة التنفيذ")
+        if (!wide && !queueOnly && !check.ready) compactCount.text = "عرض القائمة · فحص الشروط"
     }
     private fun attemptExecute() { input.finish(); refreshPreflight(); if (executeButton.isEnabled) execute() }
     private fun render(reset: Boolean = false) {
@@ -170,35 +170,35 @@ class RoutesPage(c: Context, private val wide: Boolean, private val state: Route
         val visiblePaths = listing.rows.flatMap { it.node.routePaths }; val selected = visiblePaths.count(selection::contains)
         all.setImageResource(when { selected == 0 -> R.drawable.ic_ui_check_box_outline_blank
             selected == visiblePaths.size -> R.drawable.ic_ui_check_box else -> R.drawable.ic_ui_indeterminate_check_box })
-        TooltipCompat.setTooltipText(all, "选择列表中显示的 ${listing.rows.size} 项")
-        all.contentDescription = "选择列表中显示的 ${listing.rows.size} 项，已选 $selected 条路线"
+        TooltipCompat.setTooltipText(all, "تحديد ${listing.rows.size} عناصر ظاهرة")
+        all.contentDescription = "تحديد ${listing.rows.size} عناصر ظاهرة، المحدد $selected مسار"
         up.visibility = if (state.directory.isEmpty()) GONE else VISIBLE
         crumb.removeAllViews()
         val paths = state.directory.split('/').filter(String::isNotEmpty)
-        val parts = listOf("全部路线" to "") + paths.mapIndexed { i, name -> name.substringBefore('@') to paths.take(i + 1).joinToString("/") }
+        val parts = listOf("جميع المسارات" to "") + paths.mapIndexed { i, name -> RouteCatalog.arabicDisplayName(name.substringBefore('@')) to paths.take(i + 1).joinToString("/") }
         if (parts.size > if (wide) 2 else 3) crumb.addView(OverlayUi.text(context, "…", 12f, R.color.pocket_primary).apply {
             minimumWidth = dp(20); minimumHeight = dp(32); setOnClickListener { navigate("") }
-            contentDescription = "返回全部路线"; TooltipCompat.setTooltipText(this, contentDescription)
+            contentDescription = "العودة لجميع المسارات"; TooltipCompat.setTooltipText(this, contentDescription)
         })
         parts.takeLast(if (wide) 2 else 3).forEachIndexed { i, (label, path) ->
             if (i > 0) crumb.addView(OverlayUi.icon(context, R.drawable.ic_ui_chevron_right), LayoutParams(dp(12), dp(16)))
             crumb.addView(OverlayUi.text(context, label, 12f, R.color.pocket_primary).apply {
                 maxLines = 1; ellipsize = TextUtils.TruncateAt.START; setPadding(dp(4), 0, dp(4), 0)
-                minimumHeight = dp(32); setOnClickListener { navigate(path) }; TooltipCompat.setTooltipText(this, "打开 $label")
+                minimumHeight = dp(32); setOnClickListener { navigate(path) }; TooltipCompat.setTooltipText(this, "فتح $label")
             }, LayoutParams(0, -2, 1f))
         }
-        search.hint = if (state.directory.isEmpty()) "搜索路线，支持拼音首字母" else "在「${paths.lastOrNull()?.substringBefore('@')}」中搜索"
+        search.hint = if (state.directory.isEmpty()) "البحث عن المسارات" else "البحث في ${paths.lastOrNull()?.substringBefore('@')?.let { RouteCatalog.arabicDisplayName(it) }}"
         clearSearch.visibility = if (state.query.isEmpty()) GONE else VISIBLE
         hint.visibility = if (listing.truncated) VISIBLE else GONE
-        hint.text = "只显示前 ${RouteCatalog.SEARCH_LIMIT} 项，请输入更多关键词"
+        hint.text = "تُعرض أول ${RouteCatalog.SEARCH_LIMIT} نتيجة فقط، أضف كلمات للبحث"
         empty.visibility = if (listing.rows.isEmpty()) VISIBLE else GONE
         progress.visibility = if (catalog == null) VISIBLE else GONE
         empty.getChildAt(1).visibility = if (catalog == null) GONE else VISIBLE
-        emptyText.text = when { catalog == null -> "正在读取路线目录"; state.query.isNotEmpty() -> "没有匹配「${state.query}」的路线"; else -> "此目录没有路线" }
+        emptyText.text = when { catalog == null -> "جارٍ قراءة مجلد المسارات"; state.query.isNotEmpty() -> "لا توجد مسارات تطابق ${state.query}"; else -> "لا توجد مسارات في هذا المجلد" }
         empty.findViewWithTag<View>("clear").visibility = if (state.query.isEmpty()) GONE else VISIBLE
         queue.submit(catalog?.queueEntries(selection).orEmpty(), selection.size)
-        if (!queueOnly) compactCount.text = "已选 ${selection.size} 条 · 查看"
-        executeButton.text = if (selection.isEmpty()) "选择路线后执行" else "执行 ${selection.size} 条"
+        if (!queueOnly) compactCount.text = "المحدد ${selection.size} · عرض"
+        executeButton.text = if (selection.isEmpty()) "اختر مساراً للتنفيذ" else "تنفيذ ${selection.size} مسار"
         refreshPreflight(); if (reset) list.scrollToPosition(0)
     }
     private data class RouteItem(val row: RouteCatalog.Row, val count: Int, val highlighted: Boolean)
@@ -210,7 +210,7 @@ class RoutesPage(c: Context, private val wide: Boolean, private val state: Route
         override fun onCreateViewHolder(parent: ViewGroup, type: Int): Holder {
             val c = parent.context; val root = OverlayUi.column(c)
             val row = OverlayUi.row(c).apply { minimumHeight = dp(44); setPadding(dp(4), 0, dp(8), 0) }
-            val check = OverlayUi.iconButton(c, R.drawable.ic_ui_check_box_outline_blank, "选择路线") {}
+            val check = OverlayUi.iconButton(c, R.drawable.ic_ui_check_box_outline_blank, "اختيار مسار") {}
             val icon = OverlayUi.icon(c, R.drawable.ic_ui_folder, R.color.pocket_primary)
             val texts = OverlayUi.column(c); val name = OverlayUi.text(c); val detail = OverlayUi.text(c, "", 11f, R.color.pocket_text_secondary)
             texts.addView(name); texts.addView(detail); row.addView(check); row.addView(icon, LayoutParams(row.dp(20), row.dp(20)).apply { marginStart = row.dp(4); marginEnd = row.dp(12) })
@@ -223,11 +223,11 @@ class RoutesPage(c: Context, private val wide: Boolean, private val state: Route
         override fun onBindViewHolder(h: Holder, position: Int) {
             val item = getItem(position); val row = item.row; val node = row.node
             h.check.setImageResource(when(item.count) { 0 -> R.drawable.ic_ui_check_box_outline_blank; node.routePaths.size -> R.drawable.ic_ui_check_box; else -> R.drawable.ic_ui_indeterminate_check_box })
-            h.check.contentDescription = "${node.displayName}，已选 ${item.count}/${node.routePaths.size}，点击切换选择"
+            h.check.contentDescription = "${node.displayName}، محدد ${item.count}/${node.routePaths.size}، اضغط لتبديل التحديد"
             TooltipCompat.setTooltipText(h.check, h.check.contentDescription)
             h.icon.setImageResource(if (node.file) R.drawable.ic_ui_description else R.drawable.ic_ui_folder)
             h.name.text = node.displayName; h.name.maxLines = 1; h.name.ellipsize = TextUtils.TruncateAt.MIDDLE
-            val badge = if (!node.matchMetadataReadable) "匹配方式读取失败" else node.mapMatchMethod?.takeIf(String::isNotBlank)?.let { if (it.contains("sift", true)) "SIFT" else "模板" }
+            val badge = if (!node.matchMetadataReadable) "تعذر قراءة طريقة المطابقة" else node.mapMatchMethod?.takeIf(String::isNotBlank)?.let { if (it.contains("sift", true)) "SIFT" else "قالب" }
             val detail = listOfNotNull(node.author.takeIf(String::isNotEmpty)?.let { "@$it" }, badge, row.breadcrumb.takeIf(String::isNotEmpty)).joinToString(" · ")
             h.detail.text = detail; h.detail.maxLines = 1; h.detail.ellipsize = TextUtils.TruncateAt.START
             h.detail.visibility = if (detail.isEmpty()) GONE else VISIBLE
@@ -236,7 +236,7 @@ class RoutesPage(c: Context, private val wide: Boolean, private val state: Route
             h.chevron.visibility = if (node.file) GONE else VISIBLE
             h.itemView.setBackgroundColor(if (item.highlighted || item.count == node.routePaths.size) 0x12C9A36A else android.graphics.Color.TRANSPARENT)
             h.check.setOnClickListener { toggle(row) }; h.row.setOnClickListener { open(row) }
-            TooltipCompat.setTooltipText(h.row, node.name + if (!node.matchMetadataReadable) "：匹配方式元数据读取失败" else "")
+            TooltipCompat.setTooltipText(h.row, node.name + if (!node.matchMetadataReadable) ": تعذر قراءة بيانات المطابقة" else "")
         }
         class Holder(root: View, val row: LinearLayout, val check: ImageButton, val icon: ImageView,
                      val name: TextView, val detail: TextView, val count: TextView, val chevron: ImageView) : RecyclerView.ViewHolder(root)

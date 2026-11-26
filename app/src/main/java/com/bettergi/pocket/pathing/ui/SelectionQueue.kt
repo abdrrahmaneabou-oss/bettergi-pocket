@@ -19,9 +19,9 @@ import com.bettergi.pocket.ui.*
 class SelectionQueue(c: Context, private val open: (RouteCatalog.Node) -> Unit,
                      private val remove: (RouteCatalog.Node) -> Unit, private val clear: () -> Unit,
                      private val restore: () -> Unit) : LinearLayout(c) {
-    private val title = OverlayUi.text(c, "执行队列", 13f, bold = true)
-    private val clearButton = OverlayUi.iconButton(c, R.drawable.ic_ui_delete_sweep, "清空执行队列", clear)
-    private val empty = OverlayUi.text(c, "勾选左侧路线加入队列", 11f, R.color.pocket_text_secondary)
+    private val title = OverlayUi.text(c, "قائمة التنفيذ", 13f, bold = true)
+    private val clearButton = OverlayUi.iconButton(c, R.drawable.ic_ui_delete_sweep, "مسح قائمة التنفيذ", clear)
+    private val empty = OverlayUi.text(c, "حدد المسارات لإضافتها إلى القائمة", 11f, R.color.pocket_text_secondary)
     private val undo = OverlayUi.button(c, "", click = restore)
     private val handler = Handler(Looper.getMainLooper())
     private val hideUndo = Runnable { undo.visibility = GONE }
@@ -31,19 +31,19 @@ class SelectionQueue(c: Context, private val open: (RouteCatalog.Node) -> Unit,
         addView(OverlayUi.row(c).apply {
             minimumHeight = dp(40); setPadding(dp(12), 0, dp(8), 0)
             addView(title, LayoutParams(0, -2, 1f)); addView(clearButton)
-            androidx.appcompat.widget.TooltipCompat.setTooltipText(this, "按目录顺序执行，完整目录合并显示")
+            androidx.appcompat.widget.TooltipCompat.setTooltipText(this, "التنفيذ حسب ترتيب المجلدات، وتُجمع المجلدات المحددة بالكامل")
         })
         addView(undo.apply { visibility = GONE; OverlayUi.leadingIcon(this, R.drawable.ic_ui_undo) }, LayoutParams(-1, -2))
         addView(empty.apply { gravity = android.view.Gravity.CENTER; setPadding(dp(12), dp(12), dp(12), dp(12)) })
         addView(RecyclerView(c).apply { layoutManager = LinearLayoutManager(c); adapter = this@SelectionQueue.adapter }, LayoutParams(-1, 0, 1f))
     }
     fun submit(entries: List<RouteCatalog.Node>, count: Int) {
-        title.text = "执行队列  $count 条"; adapter.submitList(entries)
+        title.text = "قائمة التنفيذ: $count"; adapter.submitList(entries)
         clearButton.isEnabled = count > 0; clearButton.alpha = if (count > 0) 1f else .38f
         empty.visibility = if (count == 0) VISIBLE else GONE
     }
     fun showUndo(count: Int) {
-        handler.removeCallbacks(hideUndo); undo.text = "已清空 $count 条 · 撤销"
+        handler.removeCallbacks(hideUndo); undo.text = "تم مسح $count · تراجع"
         undo.visibility = VISIBLE; handler.postDelayed(hideUndo, 5000)
     }
     fun hideUndo() { handler.removeCallbacks(hideUndo); undo.visibility = GONE }
@@ -75,7 +75,7 @@ class SelectionQueue(c: Context, private val open: (RouteCatalog.Node) -> Unit,
             row.titleView.apply { text = label; maxLines = 1; ellipsize = TextUtils.TruncateAt.MIDDLE }
             row.trailing.removeAllViews()
             row.trailing.addView(OverlayUi.text(row.context, node.routePaths.size.toString(), 12f, R.color.pocket_primary, true))
-            row.trailing.addView(OverlayUi.iconButton(row.context, R.drawable.ic_ui_close, "移除 ${node.displayName}") { remove(node) })
+            row.trailing.addView(OverlayUi.iconButton(row.context, R.drawable.ic_ui_close, "إزالة ${node.displayName}") { remove(node) })
             row.setOnClickListener { open(node) }
             androidx.appcompat.widget.TooltipCompat.setTooltipText(row, node.relativePath)
         }
