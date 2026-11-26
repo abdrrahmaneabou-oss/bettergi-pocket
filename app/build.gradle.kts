@@ -144,6 +144,8 @@ tasks.named("preBuild") {
 }
 
 dependencies {
+    implementation("dev.rikka.shizuku:api:13.1.5")
+    implementation("dev.rikka.shizuku:provider:13.1.5")
     // 官网新版 SDK；Maven Central 的 mtj-sdk 仍是旧版，来源与校验值见 libs/README.md。
     implementation(files("libs/Baidu_Mtj_android_4.0.11.1.jar"))
     implementation(libs.androidx.core.ktx)

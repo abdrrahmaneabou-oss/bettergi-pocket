@@ -15,6 +15,7 @@ class PassthroughTouchClient(
     private val overlay: OverlayWindowController,
     private val delegate: TouchClient = AccessibilityTouchClient,
 ) : TouchClient {
+    override fun isReady(): Boolean = delegate.isReady()
     private val main = Handler(Looper.getMainLooper())
     private var holdArmed = false
     private var dragArmed = false
@@ -23,7 +24,7 @@ class PassthroughTouchClient(
     private val armedButtons = HashSet<String>()
 
     override fun padHold(x: Int, y: Int): Boolean = onMain {
-        val armed = overlay.prepareAreaPassthrough(x, y, x, y)
+        val armed = !holdArmed && overlay.prepareAreaPassthrough(x, y, x, y)
         val ok = delegate.padHold(x, y)
         if (armed) {
             if (ok) holdArmed = true else overlay.restoreClickPassthrough()
@@ -41,7 +42,7 @@ class PassthroughTouchClient(
     }
 
     override fun buttonDown(id: String, x: Int, y: Int): Boolean = onMain {
-        val armed = overlay.prepareAreaPassthrough(x, y, x, y)
+        val armed = id !in armedButtons && overlay.prepareAreaPassthrough(x, y, x, y)
         val ok = delegate.buttonDown(id, x, y)
         if (armed) {
             if (ok) armedButtons += id else overlay.restoreClickPassthrough()

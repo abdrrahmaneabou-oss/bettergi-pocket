@@ -42,6 +42,14 @@
                         <androidx.appcompat.widget.SwitchCompat android:id="@+id/overlay_switch_auto_pick" android:layout_width="wrap_content" android:layout_height="wrap_content" android:contentDescription="تبديل الوظيفة" app:thumbTint="@color/overlay_switch_thumb" app:trackTint="@color/overlay_switch_track"/>
                     </LinearLayout>
                 </LinearLayout>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:orientation="horizontal" android:gravity="center_vertical" android:paddingHorizontal="12dp" android:paddingVertical="4dp" android:minHeight="48dp" android:background="@drawable/bg_pocket_group">
+                    <ImageView android:layout_width="20dp" android:layout_height="20dp" android:layout_marginEnd="12dp" android:src="@drawable/ic_ui_power_settings_new" app:tint="@color/pocket_text_secondary" android:importantForAccessibility="no"/>
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:id="@+id/overlay_shizuku_title" style="@style/Pocket.Text" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="SHIZUKU"/>
+                        <TextView android:id="@+id/overlay_shizuku_status" style="@style/Pocket.Text.Caption" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone" android:paddingVertical="3dp"/>
+                    </LinearLayout>
+                    <androidx.appcompat.widget.SwitchCompat android:id="@+id/overlay_switch_shizuku" android:layout_width="wrap_content" android:layout_height="wrap_content" android:contentDescription="Shizuku" app:thumbTint="@color/overlay_switch_thumb" app:trackTint="@color/overlay_switch_track"/>
+                </LinearLayout>
                 <LinearLayout android:id="@+id/overlay_group_pathing" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:orientation="vertical" android:background="@drawable/bg_pocket_group">
                     <LinearLayout android:id="@+id/overlay_row_pathing" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="44dp" android:orientation="horizontal" android:gravity="center_vertical" android:paddingHorizontal="12dp" android:paddingVertical="4dp">
                         <ImageView android:layout_width="20dp" android:layout_height="20dp" android:layout_marginEnd="12dp" android:src="@drawable/ic_ui_map" app:tint="@color/pocket_text_secondary" android:importantForAccessibility="no"/>

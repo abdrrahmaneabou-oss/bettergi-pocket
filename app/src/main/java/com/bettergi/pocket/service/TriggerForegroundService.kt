@@ -56,6 +56,50 @@ class TriggerForegroundService : Service() {
     private lateinit var pathingSettingsRepository: PathingSettingsRepository
     private lateinit var pathingRouteStore: PathingRouteStore
     private lateinit var pathingWindow: PathingWindow
+    private val shizukuPrefs by lazy { getSharedPreferences("touch_backend", MODE_PRIVATE) }
+    @Volatile private var shizukuWanted = false
+    private val shizukuMain = android.os.Handler(android.os.Looper.getMainLooper())
+    private lateinit var shizukuTouch: PassthroughTouchClient
+    private lateinit var accessibilityTouch: PassthroughTouchClient
+    private val shizukuClient = com.bettergi.pocket.pathing.input.ShizukuTouchClient
+    private val binderReceived = rikka.shizuku.Shizuku.OnBinderReceivedListener {
+        shizukuMain.post { if (!shutDown && shizukuWanted && !routeActive()) connectShizuku(false) }
+    }
+    private val binderDead = rikka.shizuku.Shizuku.OnBinderDeadListener {
+        shizukuClient.disconnected()
+        shizukuMain.post { if (!shutDown) refreshShizuku() }
+    }
+    private val permissionResult = rikka.shizuku.Shizuku.OnRequestPermissionResultListener { code, result ->
+        if (code == 3401 && result == android.content.pm.PackageManager.PERMISSION_GRANTED)
+            shizukuMain.post { if (!shutDown && shizukuWanted && !routeActive()) connectShizuku(false) }
+    }
+    private val statusPoll = object : Runnable {
+        override fun run() {
+            if (shutDown) return
+            refreshShizuku()
+            shizukuMain.postDelayed(this, 750L)
+        }
+    }
+    private fun routeActive(): Boolean = ::pathingController.isInitialized && pathingController.isRouteRunning()
+    private fun refreshShizuku() {
+        overlayController.setShizukuState(shizukuWanted, shizukuWanted && shizukuClient.isReady())
+    }
+    private fun connectShizuku(requestPermission: Boolean) {
+        if (routeActive()) return
+        try {
+            if (shizukuClient.authorized()) {
+                if (!shizukuClient.isReady()) shizukuClient.reconnect()
+            } else if (requestPermission && rikka.shizuku.Shizuku.pingBinder() &&
+                !rikka.shizuku.Shizuku.isPreV11()) {
+                rikka.shizuku.Shizuku.requestPermission(3401)
+            }
+        } catch (e: Exception) { Log.w("BetterGI.Shizuku", "Permission unavailable", e) }
+        refreshShizuku()
+    }
+    private fun selectedTouch(): com.bettergi.pocket.pathing.input.TouchClient =
+        if ((shizukuWanted && shizukuClient.isReady()) || !shizukuClient.safeForFallback())
+            shizukuTouch else accessibilityTouch
+
     private val debugRecoveryRequested = java.util.concurrent.atomic.AtomicBoolean(false)
 
     @Volatile
@@ -101,6 +145,28 @@ class TriggerForegroundService : Service() {
                 startService(stop)
             },
         )
+        accessibilityTouch = PassthroughTouchClient(overlayController)
+        shizukuTouch = PassthroughTouchClient(overlayController, shizukuClient)
+        shizukuWanted = shizukuPrefs.getBoolean("enabled", false)
+        overlayController.onShizukuToggle = { enabled ->
+            if (routeActive()) {
+                pathingController.stop()
+                overlayController.log("تم إيقاف المسار لتبديل محرك اللمس بأمان")
+            }
+            if (!enabled && !routeActive()) shizukuClient.releaseAll()
+            shizukuWanted = enabled
+            shizukuPrefs.edit().putBoolean("enabled", enabled).apply()
+            if (enabled && !routeActive()) connectShizuku(true)
+            refreshShizuku()
+        }
+        overlayController.onShizukuRetry = {
+            if (!routeActive()) connectShizuku(true)
+        }
+        rikka.shizuku.Shizuku.addBinderReceivedListenerSticky(binderReceived)
+        rikka.shizuku.Shizuku.addBinderDeadListener(binderDead)
+        rikka.shizuku.Shizuku.addRequestPermissionResultListener(permissionResult)
+        shizukuMain.post(statusPoll)
+        if (shizukuWanted) connectShizuku(false)
         genshinLaunchMonitor = GenshinLaunchMonitor(
             settingsRepository = settingsRepository,
             launcher = genshinLauncher,
@@ -115,7 +181,9 @@ class TriggerForegroundService : Service() {
                 AutoPickFeature(),
                 AutoSkipFeature(recognitionAssets, overlayController),
             ),
-            actionController = AccessibilityAutomationController(overlayController),
+            actionController = AccessibilityAutomationController(overlayController) {
+                selectedTouch().takeIf { it === shizukuTouch }
+            },
         )
         if (BuildConfig.PATHING_ENABLED) initializePathing()
         settingsRepository.addListener(settingsListener)
@@ -146,7 +214,8 @@ class TriggerForegroundService : Service() {
             loadRoutes = { pathingRouteStore.readRoutes() },
             vision = phoneHud ?: UnavailablePathingVision,
             bigMap = phoneHud ?: UnavailableBigMapUi,
-            touch = PassthroughTouchClient(overlayController),
+            touch = accessibilityTouch,
+            selectTouch = { selectedTouch() },
             onProgress = { overlayController.updateProgress(it) },
             requestRecovery = { BuildConfig.DEBUG && debugRecoveryRequested.compareAndSet(true, false) },
         )
@@ -185,7 +254,7 @@ class TriggerForegroundService : Service() {
                 startInForeground(sharing = captureController.isRunning())
                 overlayController.show()
                 refreshPathingPanel()
-                InputAccessibilityService.promptIfDisconnected(applicationContext)
+                if (!(shizukuWanted && shizukuClient.isReady())) InputAccessibilityService.promptIfDisconnected(applicationContext)
             }
             ACTION_PATHING_ROUTE -> refreshPathingPanel()
             ACTION_DEBUG_READOUT -> if (BuildConfig.DEBUG && BuildConfig.PATHING_ENABLED) {
@@ -281,6 +350,11 @@ class TriggerForegroundService : Service() {
     private fun shutdown() {
         if (shutDown) return
         shutDown = true
+        shizukuMain.removeCallbacks(statusPoll)
+        rikka.shizuku.Shizuku.removeBinderReceivedListener(binderReceived)
+        rikka.shizuku.Shizuku.removeBinderDeadListener(binderDead)
+        rikka.shizuku.Shizuku.removeRequestPermissionResultListener(permissionResult)
+        if (!routeActive()) shizukuClient.releaseAll()
         InputAccessibilityService.cancelRecoverCheck()
         genshinLaunchMonitor.stop()
         if (::pathingController.isInitialized) {

@@ -5,6 +5,7 @@ package com.bettergi.pocket.pathing.input
  * 持续触点与瞬时触点由 [com.bettergi.pocket.input.GestureComposer] 合并派发。
  */
 interface TouchClient {
+    fun isReady(): Boolean = true
     fun padHold(x: Int, y: Int): Boolean
     fun padRelease(): Boolean
     fun buttonDown(id: String, x: Int, y: Int): Boolean

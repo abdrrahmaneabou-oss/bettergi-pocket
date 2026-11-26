@@ -4,6 +4,7 @@ import com.bettergi.pocket.input.InputAccessibilityService
 
 /** 主进程侧的触控客户端，经 ContentProvider 转到 `:a11y` 进程的 [com.bettergi.pocket.input.GestureComposer]。 */
 object AccessibilityTouchClient : TouchClient {
+    override fun isReady(): Boolean = InputAccessibilityService.isConnected()
     override fun padHold(x: Int, y: Int): Boolean = InputAccessibilityService.padHold(x, y)
 
     override fun padRelease(): Boolean = InputAccessibilityService.padRelease()

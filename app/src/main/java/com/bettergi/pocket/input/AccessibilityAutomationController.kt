@@ -7,6 +7,7 @@ import com.bettergi.pocket.overlay.OverlayWindowController
 
 class AccessibilityAutomationController(
     private val overlayController: OverlayWindowController,
+    private val alternateTouch: () -> com.bettergi.pocket.pathing.input.TouchClient? = { null },
 ) : AutomationController {
     private val mainHandler = Handler(Looper.getMainLooper())
     private val restorePassthrough = Runnable { overlayController.restoreClickPassthrough() }
@@ -18,11 +19,17 @@ class AccessibilityAutomationController(
     }
 
     private fun executeClick(action: ClickAction) {
-        if (!InputAccessibilityService.isConnected()) {
-            Log.w(TAG, "skip click, accessibility service is not connected")
-            return
-        }
         mainHandler.post {
+            if (com.bettergi.pocket.pathing.TaskGate.exclusiveRunning) return@post
+            val alternate = alternateTouch()
+            if (alternate != null) {
+                if (alternate.isReady()) alternate.tap(action.x, action.y, action.durationMs)
+                return@post
+            }
+            if (!InputAccessibilityService.isConnected()) {
+                Log.w(TAG, "skip click, accessibility service is not connected")
+                return@post
+            }
             val needPassthrough = overlayController.prepareClickPassthrough(action.x, action.y)
             val dispatched = InputAccessibilityService.click(action.x, action.y, action.durationMs)
             if (!dispatched) {

@@ -45,6 +45,7 @@ class PathingController(
     private val partyAssets: android.content.res.AssetManager? = null,
     private val onProgress: (PathingProgress) -> Unit = {},
     private val requestRecovery: () -> Boolean = { false },
+    private val selectTouch: () -> TouchClient = { touch },
 ) {
     private val lock = Any()
     private var runtime: PathingRuntime? = null
@@ -189,11 +190,11 @@ class PathingController(
         val size: Pair<Int, Int>? = null,
     )
 
-    private fun checkRoutePrerequisites(): RoutePrerequisites {
+    private fun checkRoutePrerequisites(selected: TouchClient = selectTouch()): RoutePrerequisites {
         fun refused(reason: String, action: PathingPreflight.Action? = null) =
             RoutePrerequisites(PathingPreflight(reason, action))
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return refused("地图追踪需要 Android 8.0 以上")
-        if (!InputAccessibilityService.isConnected()) return refused("无障碍未连接", PathingPreflight.Action.Accessibility)
+        if (!selected.isReady()) return refused("محرك اللمس غير متصل أو لم يتحرر بأمان", PathingPreflight.Action.Accessibility)
         val size = captureSize() ?: return refused(LocationReadoutChecks.NEED_CAPTURE, PathingPreflight.Action.ScreenShare)
         if (genshinInForeground() == false) return refused(LocationReadoutChecks.GENSHIN_BACKGROUND)
         val layout = try { loadLayout() } catch (e: Exception) {
@@ -205,12 +206,13 @@ class PathingController(
     }
 
     private fun startRouteLocked() {
-        val prerequisites = checkRoutePrerequisites()
+        val touch = selectTouch() // Keep one backend for the entire batch, including cleanup.
+        val prerequisites = checkRoutePrerequisites(touch)
         val check = prerequisites.result
         if (!check.ready) { log(check.reason!!); onStatus(check.reason); return }
         val size = prerequisites.size!!
         val layout = prerequisites.layout!!
-        val runtime = PathingRuntime(frames, stopCheck = { routeStopReason() })
+        val runtime = PathingRuntime(frames, stopCheck = { routeStopReason(touch) })
         this.runtime = runtime
         TaskGate.exclusiveRunning = true
         job = Job.Route
@@ -328,9 +330,9 @@ class PathingController(
     }
 
     /** 设计第 6 节的停止来源：屏幕共享停止、无障碍断开、原神离开前台。 */
-    private fun routeStopReason(): String? = when {
+    private fun routeStopReason(selected: TouchClient): String? = when {
         !frames.isCapturing() -> "屏幕共享已停止"
-        !InputAccessibilityService.isConnected() -> "无障碍已断开"
+        !selected.isReady() -> "انقطع محرك اللمس؛ أوقف المسار لتحرير اللمسات بأمان"
         genshinInForeground() == false -> LocationReadoutChecks.GENSHIN_BACKGROUND
         else -> null
     }

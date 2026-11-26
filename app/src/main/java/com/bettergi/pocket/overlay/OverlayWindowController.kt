@@ -117,6 +117,40 @@ class OverlayWindowController(
     private var transforming = false
     private var pendingCollapseOnOutside = false
     private var switchEnabled: SwitchCompat? = null
+    private var shizukuSwitch: SwitchCompat? = null
+    private var shizukuTitle: TextView? = null
+    private var shizukuStatus: TextView? = null
+    private var shizukuEnabled = false
+    private var shizukuConnected = false
+    private var shizukuUiUpdating = false
+    var onShizukuToggle: ((Boolean) -> Unit)? = null
+    var onShizukuRetry: (() -> Unit)? = null
+
+    fun setShizukuState(enabled: Boolean, connected: Boolean) {
+        mainHandler.post {
+            if (shizukuEnabled == enabled && shizukuConnected == connected && shizukuSwitch?.isChecked == enabled) return@post
+            shizukuEnabled = enabled
+            shizukuConnected = connected
+            renderShizuku()
+            refreshStatus()
+        }
+    }
+
+    private fun renderShizuku() {
+        shizukuUiUpdating = true
+        shizukuSwitch?.isChecked = shizukuEnabled
+        shizukuUiUpdating = false
+        shizukuTitle?.setTextColor(ContextCompat.getColor(themedContext,
+            if (shizukuEnabled) R.color.pocket_primary else R.color.pocket_text_secondary))
+        shizukuStatus?.apply {
+            visibility = if (shizukuEnabled) View.VISIBLE else View.GONE
+            text = if (shizukuConnected) "متصل" else "فشل الاتصال"
+            setTextColor(ContextCompat.getColor(themedContext,
+                if (shizukuConnected) R.color.pocket_success else R.color.pocket_warning))
+            isClickable = shizukuEnabled && !shizukuConnected
+        }
+    }
+
     private var switchAutoSkip: SwitchCompat? = null
     private var quickSkipChip: TextView? = null
     private var switchAutoPick: SwitchCompat? = null
@@ -204,12 +238,25 @@ class OverlayWindowController(
         statusDot = root.findViewById(R.id.overlay_status_dot)
         statusText = root.findViewById<TextView>(R.id.overlay_status_text).also { text ->
             text.setOnClickListener {
-                if (InputAccessibilityService.health(themedContext) != AccessibilityServiceHealth.State.CONNECTED)
+                if (!shizukuConnected && InputAccessibilityService.health(themedContext) != AccessibilityServiceHealth.State.CONNECTED)
                     InputAccessibilityService.ensureEnabled(themedContext)
                 else if (routeRunning || readoutRunning) expandStatusBar()
             }
         }
         chatBadge = root.findViewById(R.id.overlay_chat_badge)
+        shizukuSwitch = root.findViewById(R.id.overlay_switch_shizuku)
+        shizukuTitle = root.findViewById(R.id.overlay_shizuku_title)
+        shizukuStatus = root.findViewById(R.id.overlay_shizuku_status)
+        shizukuSwitch?.setOnCheckedChangeListener { _, checked ->
+            if (!shizukuUiUpdating) {
+                shizukuEnabled = checked
+                shizukuConnected = false
+                renderShizuku()
+                onShizukuToggle?.invoke(checked)
+            }
+        }
+        shizukuStatus?.setOnClickListener { if (shizukuEnabled && !shizukuConnected) onShizukuRetry?.invoke() }
+        renderShizuku()
         switchEnabled = root.findViewById(R.id.overlay_switch_enabled)
         switchAutoSkip = root.findViewById(R.id.overlay_switch_auto_skip)
         switchAutoPick = root.findViewById(R.id.overlay_switch_auto_pick)
@@ -253,7 +300,7 @@ class OverlayWindowController(
         root.findViewById<View>(R.id.overlay_bilibili).setOnClickListener { openBilibiliSpace() }
         root.findViewById<View>(R.id.overlay_exit).setOnClickListener { exitAssistant() }
         root.findViewById<TextView>(R.id.overlay_warning_action).setOnClickListener {
-            if (InputAccessibilityService.health(themedContext) != AccessibilityServiceHealth.State.CONNECTED)
+            if (!shizukuConnected && InputAccessibilityService.health(themedContext) != AccessibilityServiceHealth.State.CONNECTED)
                 InputAccessibilityService.ensureEnabled(themedContext)
             else { captureInterrupted = false; settingsRepository.setScreenShareEnabled(true) }
         }
@@ -268,7 +315,7 @@ class OverlayWindowController(
                 if (!settingsRepository.get().screenShareEnabled) { hintNeedShare(); updatingUi = true
                     switchAutoSkip?.isChecked = settingsRepository.get().autoSkipEnabled; updatingUi = false }
                 else { settingsRepository.setAutoSkipEnabled(checked); BaiduAnalytics.event("auto_skip_toggle", checked.toString())
-                    if (checked) InputAccessibilityService.ensureEnabled(themedContext, "فعّل إمكانية الوصول لمحاكاة الضغط على خيارات الحوار") }
+                    if (checked && !shizukuConnected) InputAccessibilityService.ensureEnabled(themedContext, "فعّل إمكانية الوصول لمحاكاة الضغط على خيارات الحوار") }
             }
         }
         rowAutoSkip?.setOnClickListener { if (!settingsRepository.get().screenShareEnabled) hintNeedShare() else switchAutoSkip?.toggle() }
@@ -279,7 +326,7 @@ class OverlayWindowController(
         autoLaunchChip?.setOnClickListener { settingsRepository.setAutoLaunchGenshinEnabled(!settingsRepository.get().autoLaunchGenshinEnabled) }
         switchAutoPick?.setOnCheckedChangeListener { _, checked -> if (!updatingUi) {
             settingsRepository.setAutoPickEnabled(checked); BaiduAnalytics.event("auto_pick_toggle", checked.toString())
-            if (checked) InputAccessibilityService.ensureEnabled(themedContext, "فعّل إمكانية الوصول لمحاكاة الالتقاط")
+            if (checked && !shizukuConnected) InputAccessibilityService.ensureEnabled(themedContext, "فعّل إمكانية الوصول لمحاكاة الالتقاط")
         } }
         OverlayUi.leadingIcon(quickSkipChip!!, R.drawable.ic_ui_fast_forward, size = 14)
         OverlayUi.leadingIcon(autoLaunchChip!!, R.drawable.ic_ui_autorenew, size = 14)
@@ -436,6 +483,9 @@ class OverlayWindowController(
         statusText = null
         chatBadge = null
         params = null
+        shizukuSwitch = null
+        shizukuTitle = null
+        shizukuStatus = null
         switchEnabled = null
         switchAutoSkip = null
         quickSkipChip = null
@@ -806,8 +856,8 @@ class OverlayWindowController(
         val enabled = settingsRepository.get().screenShareEnabled
         val talking = isTalking()
         val a11yHealth = InputAccessibilityService.health(themedContext)
-        val a11yDisconnected = a11yWarningReady && a11yHealth == AccessibilityServiceHealth.State.DISCONNECTED
-        val a11yUnavailable = a11yWarningReady && a11yHealth != AccessibilityServiceHealth.State.CONNECTED
+        val a11yDisconnected = !shizukuConnected && a11yWarningReady && a11yHealth == AccessibilityServiceHealth.State.DISCONNECTED
+        val a11yUnavailable = !shizukuConnected && a11yWarningReady && a11yHealth != AccessibilityServiceHealth.State.CONNECTED
         val colorRes = when {
             a11yDisconnected -> R.color.overlay_status_warn
             talking -> R.color.overlay_status_on
