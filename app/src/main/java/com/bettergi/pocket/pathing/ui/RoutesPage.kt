@@ -153,14 +153,14 @@ class RoutesPage(c: Context, private val wide: Boolean, private val state: Route
     }
     fun refreshPreflight() {
         val check = preflight(); warning.visibility = if (check.ready) GONE else VISIBLE
-        warningText.text = check.reason
+        warningText.text = check.reason?.let(ArabicText::display)
         warning.findViewWithTag<View>("fix").visibility = if (check.action == null) GONE else VISIBLE
         executeButton.isEnabled = selection.isNotEmpty() && catalog != null && check.ready
         executeButton.setTextColor(androidx.core.content.ContextCompat.getColor(context,
             if (executeButton.isEnabled) R.color.pocket_on_primary else R.color.pocket_text_disabled))
         executeButton.background.alpha = if (executeButton.isEnabled) 255 else 31
         settingsSummary.text = summary()
-        TooltipCompat.setTooltipText(executeButton, check.reason ?: "البدء حسب ترتيب قائمة التنفيذ")
+        TooltipCompat.setTooltipText(executeButton, check.reason?.let(ArabicText::display) ?: "البدء حسب ترتيب قائمة التنفيذ")
         if (!wide && !queueOnly && !check.ready) compactCount.text = "عرض القائمة · فحص الشروط"
     }
     private fun attemptExecute() { input.finish(); refreshPreflight(); if (executeButton.isEnabled) execute() }
@@ -229,7 +229,7 @@ class RoutesPage(c: Context, private val wide: Boolean, private val state: Route
             h.name.text = node.displayName; h.name.maxLines = 1; h.name.ellipsize = TextUtils.TruncateAt.MIDDLE
             val badge = if (!node.matchMetadataReadable) "تعذر قراءة طريقة المطابقة" else node.mapMatchMethod?.takeIf(String::isNotBlank)?.let { if (it.contains("sift", true)) "SIFT" else "قالب" }
             val detail = listOfNotNull(node.author.takeIf(String::isNotEmpty)?.let { "@$it" }, badge, row.breadcrumb.takeIf(String::isNotEmpty)).joinToString(" · ")
-            h.detail.text = detail; h.detail.maxLines = 1; h.detail.ellipsize = TextUtils.TruncateAt.START
+            h.detail.text = ArabicText.display(detail); h.detail.maxLines = 1; h.detail.ellipsize = TextUtils.TruncateAt.START
             h.detail.visibility = if (detail.isEmpty()) GONE else VISIBLE
             h.row.minimumHeight = h.row.dp(if (row.breadcrumb.isEmpty()) 44 else 52)
             h.count.text = if (node.file) "" else if (item.count in 1 until node.routePaths.size) "${item.count}/${node.routePaths.size}" else node.routePaths.size.toString()

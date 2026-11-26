@@ -1,5 +1,7 @@
 package com.bettergi.pocket.service
 
+import com.bettergi.pocket.ui.ArabicText
+
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -81,7 +83,7 @@ class TriggerForegroundService : Service() {
                 settingsRepository.setScreenShareEnabled(false)
                 Toast.makeText(
                     applicationContext,
-                    "屏幕共享已停止，可能被其他录制应用占用",
+                    "توقفت مشاركة الشاشة، ربما يستخدمها تطبيق تسجيل آخر",
                     Toast.LENGTH_SHORT,
                 ).show()
                 if (::overlayController.isInitialized) overlayController.showCaptureInterrupted()
@@ -340,10 +342,10 @@ class TriggerForegroundService : Service() {
             openIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        val text = if (sharing) "正在共享屏幕" else "点悬浮球可开启共享屏幕"
+        val text = if (sharing) "مشاركة الشاشة نشطة" else "اضغط الفقاعة لتفعيل مشاركة الشاشة"
         return if (Build.VERSION.SDK_INT >= 26) {
             Notification.Builder(this, NOTIFICATION_CHANNEL_ID)
-                .setContentTitle("更好的原神")
+                .setContentTitle("مساعد جينشن")
                 .setContentText(text)
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentIntent(pendingIntent)
@@ -352,7 +354,7 @@ class TriggerForegroundService : Service() {
         } else {
             @Suppress("DEPRECATION")
             Notification.Builder(this)
-                .setContentTitle("更好的原神")
+                .setContentTitle("مساعد جينشن")
                 .setContentText(text)
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentIntent(pendingIntent)

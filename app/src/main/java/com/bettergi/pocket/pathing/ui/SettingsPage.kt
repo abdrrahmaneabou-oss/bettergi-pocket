@@ -143,14 +143,14 @@ class SettingsPage(c: Context, wide: Boolean, private val repo: PathingSettingsR
         val config = repo.get()
         candidateRows.forEach { (slot, row) ->
             val names = slot.names(config, repo)
-            row.findViewWithTag<android.widget.TextView>("value")?.text = names.joinToString("、").ifEmpty { "معطل" }
+            row.findViewWithTag<android.widget.TextView>("value")?.text = names.joinToString("، ") { ArabicText.avatar(it) }.ifEmpty { "معطل" }
             row.findViewWithTag<android.widget.TextView>("count").text = when {
                 names.isEmpty() -> "معطل"; slot.element == null -> names.size.toString()
                 else -> elementCount(slot, names, row.width)
             }
             row.alpha = if (names.isEmpty()) .5f else 1f
             androidx.appcompat.widget.TooltipCompat.setTooltipText(row,
-                "${slot.title}：${if (names.isEmpty()) "معطل" else names.joinToString("、")}")
+                "${slot.title}：${if (names.isEmpty()) "معطل" else names.joinToString("، ") { ArabicText.avatar(it) }}")
         }
     }
     companion object {

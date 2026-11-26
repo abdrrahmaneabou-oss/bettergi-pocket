@@ -1,5 +1,7 @@
 package com.bettergi.pocket.overlay
 
+import com.bettergi.pocket.ui.ArabicText
+
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
@@ -660,7 +662,7 @@ class OverlayWindowController(
 
     fun updateProgress(value: PathingProgress) { mainHandler.post {
         progress = value
-        pathingStatus?.text = if (value.finished) "${logTimeFormat.format(Date())} مكتمل ${value.completed} · تخطي ${value.skipped} · فشل ${value.failed}" else "${value.index}/${value.total} · ${value.name}"
+        pathingStatus?.text = if (value.finished) "${logTimeFormat.format(Date())} مكتمل ${value.completed} · تخطي ${value.skipped} · فشل ${value.failed}" else "${value.index}/${value.total} · ${ArabicText.display(value.name)}"
         rootView?.findViewById<ProgressBar>(R.id.overlay_pathing_progress)?.apply { max = value.total.coerceAtLeast(1); progress = if (value.finished) value.total else value.index - 1 }
         refreshStatus()
     } }
@@ -688,14 +690,14 @@ class OverlayWindowController(
     fun showPathing(routeLabel: String, hasSelection: Boolean = true) { mainHandler.post {
         pathingSummary = routeLabel
         hasRouteSelection = hasSelection
-        if (!routeRunning && !readoutRunning) { pathingStatus?.text = routeLabel
+        if (!routeRunning && !readoutRunning) { pathingStatus?.text = ArabicText.display(routeLabel)
             pathingStatus?.setTextColor(ContextCompat.getColor(themedContext, R.color.pocket_text_secondary)) }
         refreshPathingAction()
     } }
 
     fun setPathingStatus(text: String) { mainHandler.post {
-        latestPathingStatus = text
-        if (progress?.finished != true || routeRunning || readoutRunning) pathingStatus?.text = text
+        latestPathingStatus = ArabicText.display(text)
+        if (progress?.finished != true || routeRunning || readoutRunning) pathingStatus?.text = ArabicText.display(text)
         pathingStatus?.setTextColor(ContextCompat.getColor(themedContext,
             if (!routeRunning && !readoutRunning && progress?.finished != true && text != "已停止") R.color.pocket_warning else R.color.pocket_text_secondary))
         refreshStatus()
@@ -711,7 +713,7 @@ class OverlayWindowController(
     private fun appendLog(message: String, level: LogLevel = LogLevel.Info) { mainHandler.post {
         // 路线文件名由批执行器统一缩短，保留其他日志中的有效上下文。
         if (logLines.size >= MAX_LOG_LINES) logLines.removeFirst()
-        logLines.addLast(LogLine(logTimeFormat.format(Date()), message, level))
+        logLines.addLast(LogLine(logTimeFormat.format(Date()), ArabicText.display(message), level))
         renderLog(); refreshLogTitle()
     } }
 
@@ -759,7 +761,7 @@ class OverlayWindowController(
             }
         }
         logTitle?.text = when {
-            routeRunning && p != null -> "${p.index}/${p.total} · ${p.name}"
+            routeRunning && p != null -> "${p.index}/${p.total} · ${ArabicText.display(p.name)}"
             routeRunning -> latestPathingStatus.ifEmpty { "جارٍ قراءة المسار…" }
             readoutRunning -> latestPathingStatus
             p?.finished == true -> "مكتمل ${p.completed} · تخطي ${p.skipped} · فشل ${p.failed}"

@@ -118,7 +118,7 @@ class AvatarPickerPage(c: Context, private val slot: CandidateSlot, private val 
         val other = when (slot) { CandidateSlot.ShortGuardian -> config.guardianLongAvatars; CandidateSlot.LongGuardian -> config.guardianShortAvatars; else -> emptyList() }
         val moved = name !in selection.values && name in other
         selection.toggle(name); save()
-        if (moved) showNotice("تم نقل $name من مجموعة ${if (slot == CandidateSlot.ShortGuardian) "مهارة مطولة" else "مهارة قصيرة"}", false)
+        if (moved) showNotice("تم نقل ${ArabicText.avatar(name)} من مجموعة ${if (slot == CandidateSlot.ShortGuardian) "مهارة مطولة" else "مهارة قصيرة"}", false)
     }
     private fun save() { slot.save(repo, selection.values); render() }
     private fun render() {
@@ -128,7 +128,7 @@ class AvatarPickerPage(c: Context, private val slot: CandidateSlot, private val 
     private fun renderGrid() {
         val config = repo.get(); val other = when (slot) { CandidateSlot.ShortGuardian -> config.guardianLongAvatars; CandidateSlot.LongGuardian -> config.guardianShortAvatars; else -> emptyList() }
         val filtered = options.filter { avatar -> (filter == null || avatar.element == filter) &&
-            (query.isEmpty() || (listOf(avatar.name, avatar.nameEn) + avatar.aliases).any { it.lowercase(Locale.ROOT).contains(query) }) }
+            (query.isEmpty() || (listOf(avatar.name, avatar.nameEn, ArabicText.avatar(avatar.name)) + avatar.aliases).any { it.lowercase(Locale.ROOT).contains(query) }) }
         gridAdapter.submitList(filtered.map { GridItem(it, selection.values.indexOf(it.name) + 1,
             if (it.name in other) if (slot == CandidateSlot.ShortGuardian) "مهارة مطولة" else "مهارة قصيرة" else "") })
         empty.visibility = if (filtered.isEmpty()) VISIBLE else GONE
@@ -172,17 +172,17 @@ class AvatarPickerPage(c: Context, private val slot: CandidateSlot, private val 
         }
         override fun onBindViewHolder(h: Holder, index: Int) {
             val name = names[index]; val avatar = catalog.byName(name)
-            h.number.text = (index + 1).toString(); h.name.text = catalog.byName(name)?.nameEn ?: name
+            h.number.text = (index + 1).toString(); h.name.text = ArabicText.avatar(name)
             h.detail.text = avatar?.let {
                 val cooldown = if (slot == CandidateSlot.LongGuardian && it.skillHoldCd > 0) it.skillHoldCd else it.skillCd
                 "${elementLabel(it.element)} · E ${java.math.BigDecimal.valueOf(cooldown).stripTrailingZeros().toPlainString()}s"
             }.orEmpty()
             h.detail.setTextColor(elementColor(context, avatar?.element)); h.detail.maxLines = 1; h.detail.ellipsize = TextUtils.TruncateAt.END
-            h.remove.contentDescription = "إزالة $name"; h.remove.setOnClickListener { toggle(name) }
+            h.remove.contentDescription = "إزالة ${ArabicText.avatar(name)}"; h.remove.setOnClickListener { toggle(name) }
             h.drag.setOnTouchListener { _, event -> if (event.actionMasked == MotionEvent.ACTION_DOWN) { input.finish(); touchHelper.startDrag(h) }; false }
             ViewCompat.replaceAccessibilityAction(h.itemView, AccessibilityNodeInfoCompat.AccessibilityActionCompat.ACTION_SCROLL_BACKWARD, "رفع الأولوية") { _, _ -> selection.move(name, -1); save(); true }
             ViewCompat.replaceAccessibilityAction(h.itemView, AccessibilityNodeInfoCompat.AccessibilityActionCompat.ACTION_SCROLL_FORWARD, "خفض الأولوية") { _, _ -> selection.move(name, 1); save(); true }
-            h.itemView.contentDescription = "الأولوية ${index + 1}، $name، ${h.detail.text}"
+            h.itemView.contentDescription = "الأولوية ${index + 1}، ${ArabicText.avatar(name)}، ${h.detail.text}"
         }
         inner class Holder(v: View, val number: TextView, val drag: ImageButton, val name: TextView, val detail: TextView, val remove: ImageButton) : RecyclerView.ViewHolder(v)
     }
@@ -200,13 +200,13 @@ class AvatarPickerPage(c: Context, private val slot: CandidateSlot, private val 
             return Holder(row, dot, name, number)
         }
         override fun onBindViewHolder(h: Holder, position: Int) {
-            val item = getItem(position); h.name.text = item.avatar.nameEn
+            val item = getItem(position); h.name.text = ArabicText.avatar(item.avatar.name)
             h.number.text = if (item.priority > 0) item.priority.toString() else item.otherGroup
             h.dot.background = android.graphics.drawable.GradientDrawable().apply { shape = android.graphics.drawable.GradientDrawable.OVAL; setColor(elementColor(context, item.avatar.element)) }
             h.itemView.setBackgroundResource(if (item.priority > 0) R.drawable.bg_pocket_chip else R.drawable.bg_pocket_group)
             h.itemView.setOnClickListener { toggle(item.avatar.name) }
-            h.itemView.contentDescription = "${item.avatar.name}，${if (item.priority > 0) "محدد، الأولوية ${item.priority}" else "غير محدد"}${item.otherGroup}"
-            androidx.appcompat.widget.TooltipCompat.setTooltipText(h.itemView, "${item.avatar.name} · ${item.avatar.nameEn}")
+            h.itemView.contentDescription = "${ArabicText.avatar(item.avatar.name)}،${if (item.priority > 0) "محدد، الأولوية ${item.priority}" else "غير محدد"}${item.otherGroup}"
+            androidx.appcompat.widget.TooltipCompat.setTooltipText(h.itemView, "${ArabicText.avatar(item.avatar.name)} · ${item.avatar.nameEn}")
         }
         inner class Holder(v: View, val dot: View, val name: TextView, val number: TextView) : RecyclerView.ViewHolder(v)
     }

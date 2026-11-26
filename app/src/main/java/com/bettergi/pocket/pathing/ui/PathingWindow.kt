@@ -175,7 +175,7 @@ class PathingWindow(private val base: Context, private val store: PathingRouteSt
         val config = settings.get()
         return listOf(config.mapMatchingMethod.label,
             if (config.useGadgetEnabled) "الأداة ${SettingsPage.seconds(config.useGadgetIntervalMs.toLong())} ث" else "الأداة معطلة",
-            config.mainAvatars.firstOrNull() ?: "شخصية التنقل معطلة").joinToString(" · ")
+            config.mainAvatars.firstOrNull()?.let(ArabicText::avatar) ?: "شخصية التنقل معطلة").joinToString(" · ")
     }
     private fun loadCatalog() {
         if (loading || disposed) return

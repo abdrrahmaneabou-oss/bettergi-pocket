@@ -63,7 +63,7 @@ class SelectionQueue(c: Context, private val open: (RouteCatalog.Node) -> Unit,
         override fun onBindViewHolder(h: Holder, position: Int) {
             val node = getItem(position); val row = h.row
             val detail = node.author.takeIf { it.isNotEmpty() }?.let { "@$it" }
-                ?: node.relativePath.substringBeforeLast('/', "").substringAfterLast('/').substringBefore('@')
+                ?: node.relativePath.substringBeforeLast('/', "").substringAfterLast('/').substringBefore('@').let(ArabicText::display)
             val label = android.text.SpannableStringBuilder(node.displayName)
             if (detail.isNotEmpty() && !node.file) {
                 val start = label.length; label.append(" ").append(detail)
