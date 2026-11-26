@@ -1,6 +1,8 @@
 name: Build arm64 APKs (story + full)
 
 on:
+  push:
+    branches: [arabic-localization]
   workflow_dispatch:
     inputs:
       publish_release:
