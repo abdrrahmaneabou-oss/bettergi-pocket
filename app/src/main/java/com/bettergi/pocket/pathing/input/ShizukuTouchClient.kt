@@ -2,6 +2,7 @@ package com.bettergi.pocket.pathing.input
 
 import android.content.pm.PackageManager
 import android.os.SystemClock
+import android.os.Looper
 import android.util.Log
 import android.view.InputDevice
 import android.view.InputEvent
@@ -42,7 +43,7 @@ object ShizukuTouchClient : TouchClient {
     }.getOrDefault(false)
 
     override fun isReady(): Boolean = authorized() && transport != null && !fault
-    fun safeForFallback(): Boolean = !active
+    fun safeForFallback(): Boolean = !active && worker.activeCount == 0 && worker.queue.isEmpty()
     fun disconnected() { transport = null; fault = true }
 
     /** Reconnect must not forget fingers left in an uncertain state. */
@@ -71,20 +72,27 @@ object ShizukuTouchClient : TouchClient {
         }
     }
 
-    private fun enqueue(action: () -> Boolean): Boolean = synchronized(submitLock) {
-        if (!isReady()) return@synchronized false
-        try {
-            worker.execute {
-                if (!isReady()) return@execute
-                try {
-                    if (!action()) fail()
-                } catch (e: Throwable) {
-                    Log.w(TAG, "Input failed", e)
-                    fail()
+    private fun enqueue(action: () -> Boolean): Boolean {
+        val future = synchronized(submitLock) {
+            if (!isReady()) return false
+            try {
+                worker.submit<Boolean> {
+                    if (!isReady()) false else try {
+                        action().also { if (!it) fail() }
+                    } catch (e: Throwable) {
+                        Log.w(TAG, "Input failed", e)
+                        fail()
+                        false
+                    }
                 }
-            }
-            true
-        } catch (_: Exception) { fault = true; false }
+            } catch (_: Exception) { fault = true; return false }
+        }
+        // The real-time dialogue caller is on UI; the navigation worker waits for delivery
+        // before starting its existing delays, especially the 60 ms approach pulse.
+        if (Looper.myLooper() == Looper.getMainLooper()) return true
+        return try { future.get(3000L, TimeUnit.MILLISECONDS) }
+        catch (_: InterruptedException) { Thread.currentThread().interrupt(); false }
+        catch (_: Exception) { fault = true; false }
     }
 
     private fun fail() {
@@ -204,14 +212,22 @@ object ShizukuTouchClient : TouchClient {
             interpolate(mapOf(TAP to (centerX - endSpan / 2f to y), PINCH to (centerX + endSpan / 2f to y)), durationMs) &&
             up(PINCH) && up(TAP)
     }
+    private fun releaseStream(): Boolean {
+        if (fault) return clearStream()
+        for (key in fingers.keys.toList().asReversed()) {
+            if (!up(key)) { fault = true; return clearStream() }
+        }
+        return true
+    }
+
     override fun releaseAll(): Boolean = synchronized(submitLock) {
         worker.queue.clear()
-        try { worker.execute { clearStream() }; true } catch (_: Exception) { false }
+        try { worker.execute { releaseStream() }; true } catch (_: Exception) { false }
     }
     override fun releaseAllAndWait(timeoutMs: Long): Boolean {
         val future = synchronized(submitLock) {
             worker.queue.clear()
-            try { worker.submit<Boolean> { clearStream() } } catch (_: Exception) { return false }
+            try { worker.submit<Boolean> { releaseStream() } } catch (_: Exception) { return false }
         }
         var interrupted = Thread.interrupted()
         val deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMs)

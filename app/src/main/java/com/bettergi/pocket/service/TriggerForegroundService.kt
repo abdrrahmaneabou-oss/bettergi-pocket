@@ -59,7 +59,10 @@ class TriggerForegroundService : Service() {
     private val shizukuPrefs by lazy { getSharedPreferences("touch_backend", MODE_PRIVATE) }
     @Volatile private var shizukuWanted = false
     private val shizukuMain = android.os.Handler(android.os.Looper.getMainLooper())
-    private lateinit var shizukuTouch: PassthroughTouchClient
+    private lateinit var shizukuTouch: com.bettergi.pocket.pathing.input.ShizukuPassthroughClient
+    private val blockedTouch = object : com.bettergi.pocket.pathing.input.TouchClient by com.bettergi.pocket.pathing.input.ShizukuTouchClient {
+        override fun isReady(): Boolean = false
+    }
     private lateinit var accessibilityTouch: PassthroughTouchClient
     private val shizukuClient = com.bettergi.pocket.pathing.input.ShizukuTouchClient
     private val binderReceived = rikka.shizuku.Shizuku.OnBinderReceivedListener {
@@ -97,8 +100,11 @@ class TriggerForegroundService : Service() {
         refreshShizuku()
     }
     private fun selectedTouch(): com.bettergi.pocket.pathing.input.TouchClient =
-        if ((shizukuWanted && shizukuClient.isReady()) || !shizukuClient.safeForFallback())
-            shizukuTouch else accessibilityTouch
+        when {
+            shizukuWanted && shizukuClient.isReady() -> shizukuTouch
+            !shizukuClient.safeForFallback() -> blockedTouch
+            else -> accessibilityTouch
+        }
 
     private val debugRecoveryRequested = java.util.concurrent.atomic.AtomicBoolean(false)
 
@@ -146,7 +152,7 @@ class TriggerForegroundService : Service() {
             },
         )
         accessibilityTouch = PassthroughTouchClient(overlayController)
-        shizukuTouch = PassthroughTouchClient(overlayController, shizukuClient)
+        shizukuTouch = com.bettergi.pocket.pathing.input.ShizukuPassthroughClient(overlayController, shizukuClient)
         shizukuWanted = shizukuPrefs.getBoolean("enabled", false)
         overlayController.onShizukuToggle = { enabled ->
             if (routeActive()) {
@@ -182,7 +188,7 @@ class TriggerForegroundService : Service() {
                 AutoSkipFeature(recognitionAssets, overlayController),
             ),
             actionController = AccessibilityAutomationController(overlayController) {
-                selectedTouch().takeIf { it === shizukuTouch }
+                selectedTouch().takeIf { it !== accessibilityTouch }
             },
         )
         if (BuildConfig.PATHING_ENABLED) initializePathing()
@@ -207,7 +213,12 @@ class TriggerForegroundService : Service() {
             onStatus = { text -> overlayController.setPathingStatus(text) },
             onRouteChanged = { running ->
                 overlayController.setRouteRunning(running)
-                if (!running) debugRecoveryRequested.set(false)
+                if (!running) {
+                    debugRecoveryRequested.set(false)
+                    shizukuMain.post {
+                        if (!shutDown && shizukuWanted && !shizukuClient.isReady()) connectShizuku(false)
+                    }
+                }
             },
             captureSize = { captureController.capturedSize() },
             pathingSettings = { pathingSettingsRepository.get() },
